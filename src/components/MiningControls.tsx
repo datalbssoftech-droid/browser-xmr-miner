@@ -16,7 +16,6 @@ export const MiningControls = () => {
     return localStorage.getItem("mining_consent") === "true";
   });
   const [graphData, setGraphData] = useState<HashrateDataPoint[]>([]);
-  const [graphData, setGraphData] = useState<HashrateDataPoint[]>([]);
   const maxThreads = navigator.hardwareConcurrency || 4;
   const prevSharesRef = useRef(0);
   const graphIntervalRef = useRef<ReturnType<typeof setInterval>>();
