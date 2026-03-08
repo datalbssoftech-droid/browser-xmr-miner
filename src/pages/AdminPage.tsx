@@ -59,7 +59,12 @@ const AdminPage = () => {
   const saveConfig = async () => {
     setConfigSaving(true);
     for (const [key, value] of Object.entries(config)) {
-      await supabase.from("platform_config").update({ value }).eq("key", key);
+      const { data: existing } = await supabase.from("platform_config").select("id").eq("key", key).maybeSingle();
+      if (existing) {
+        await supabase.from("platform_config").update({ value }).eq("key", key);
+      } else {
+        await supabase.from("platform_config").insert({ key, value });
+      }
     }
     toast.success("Configuration saved!");
     setConfigSaving(false);
