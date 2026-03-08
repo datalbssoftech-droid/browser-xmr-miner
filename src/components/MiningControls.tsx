@@ -1,14 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Cpu, Play, Square, Activity, Wifi, WifiOff, CheckCircle, XCircle } from "lucide-react";
+import { Cpu, Play, Square, Activity, Wifi, WifiOff, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebSocketMiner } from "@/hooks/useWebSocketMiner";
 import { toast } from "sonner";
-
-// Set this to your mining proxy WebSocket URL when deployed
-const PROXY_URL = import.meta.env.VITE_MINING_PROXY_URL || "wss://proxy.harimine.com";
 
 export const MiningControls = () => {
   const { user } = useAuth();
@@ -17,8 +14,7 @@ export const MiningControls = () => {
   const [consented, setConsented] = useState(false);
   const maxThreads = navigator.hardwareConcurrency || 4;
 
-  const { stats, startMining: wsStart, stopMining: wsStop } = useWebSocketMiner({
-    proxyUrl: PROXY_URL,
+  const { stats, startMining: wsStart, stopMining: wsStop, proxyUrl, proxyEnabled } = useWebSocketMiner({
     threads,
     cpuUsage,
   });
@@ -26,7 +22,6 @@ export const MiningControls = () => {
   const startMining = async () => {
     if (!user) return;
 
-    // Create mining session in DB
     await supabase.from("mining_sessions").insert({
       user_id: user.id,
       threads,
@@ -77,6 +72,20 @@ export const MiningControls = () => {
 
   return (
     <div className="space-y-6">
+      {/* Proxy Warning */}
+      {!proxyEnabled && (
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
+          <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-warning">Mining proxy is disabled</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              An admin must enable the proxy and configure the pool settings before real mining can begin.
+              Mining will run in simulation mode.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="stat-card">
         {/* Status Header */}
         <div className="flex items-center justify-between mb-4">
@@ -95,8 +104,13 @@ export const MiningControls = () => {
         </div>
 
         {/* Connection Status */}
-        <div className="mb-4 px-3 py-2 rounded-lg bg-secondary text-xs font-mono text-muted-foreground">
-          Status: {stats.status} · Proxy: {PROXY_URL.replace("wss://", "")}
+        <div className="mb-4 px-3 py-2 rounded-lg bg-secondary text-xs font-mono text-muted-foreground flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full shrink-0 ${proxyEnabled ? "bg-success" : "bg-warning"}`} />
+          <span className="truncate">
+            {proxyEnabled
+              ? `Proxy: ${proxyUrl?.replace("wss://", "").replace("ws://", "") || "not set"} · ${stats.status}`
+              : `Simulation mode · ${stats.status}`}
+          </span>
         </div>
 
         {/* Live Stats */}

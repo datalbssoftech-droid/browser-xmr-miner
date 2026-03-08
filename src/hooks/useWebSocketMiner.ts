@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-
-export interface MiningJob {
-  jobId: string;
-  blob: string;
-  target: string;
-  height: number;
-}
+import { supabase } from "@/integrations/supabase/client";
 
 export interface MiningStats {
   hashrate: number;
@@ -19,15 +13,17 @@ export interface MiningStats {
 }
 
 interface UseWebSocketMinerOptions {
-  /** Your mining proxy WebSocket URL, e.g. wss://proxy.harimine.com */
-  proxyUrl: string;
   threads: number;
   cpuUsage: number;
   onStatsUpdate?: (stats: MiningStats) => void;
 }
 
 /**
- * WebSocket mining hook that connects to a Stratum mining proxy.
+ * WebSocket mining hook that:
+ * 1. Fetches proxy URL from platform_config (admin-configurable)
+ * 2. Connects to the proxy via WebSocket
+ * 3. Spawns Web Workers for mining
+ * 4. Reports shares back to proxy
  *
  * Protocol (browser ↔ proxy):
  *   → { type: "auth", token: string, threads: number }
@@ -38,7 +34,6 @@ interface UseWebSocketMinerOptions {
  *   ← { type: "error", message: string }
  */
 export const useWebSocketMiner = ({
-  proxyUrl,
   threads,
   cpuUsage,
   onStatsUpdate,
@@ -49,6 +44,8 @@ export const useWebSocketMiner = ({
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const statsIntervalRef = useRef<ReturnType<typeof setInterval>>();
   const hashCountRef = useRef(0);
+  const [proxyUrl, setProxyUrl] = useState<string | null>(null);
+  const [proxyEnabled, setProxyEnabled] = useState(false);
 
   const [stats, setStats] = useState<MiningStats>({
     hashrate: 0,
@@ -60,6 +57,25 @@ export const useWebSocketMiner = ({
     status: "idle",
   });
 
+  // Fetch proxy config from platform_config table
+  const fetchProxyConfig = useCallback(async () => {
+    const { data } = await supabase
+      .from("platform_config")
+      .select("key, value")
+      .in("key", ["proxy_url", "proxy_enabled"]);
+
+    if (data) {
+      const configMap: Record<string, string> = {};
+      data.forEach((r) => { configMap[r.key] = r.value; });
+      setProxyUrl(configMap.proxy_url || null);
+      setProxyEnabled(configMap.proxy_enabled === "true");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProxyConfig();
+  }, [fetchProxyConfig]);
+
   const updateStats = useCallback((partial: Partial<MiningStats>) => {
     setStats((prev) => {
       const next = { ...prev, ...partial };
@@ -68,33 +84,15 @@ export const useWebSocketMiner = ({
     });
   }, [onStatsUpdate]);
 
-  /** Create Web Workers that would run the WASM miner */
+  /** Create Web Workers that run the miner */
   const spawnWorkers = useCallback(
-    (job: MiningJob) => {
-      // Terminate existing workers
+    (job: { jobId: string; blob: string; target: string }) => {
       workersRef.current.forEach((w) => w.terminate());
       workersRef.current = [];
 
       for (let i = 0; i < threads; i++) {
-        // In production, this Worker would load the RandomX WASM binary
-        // and compute hashes against the job blob/target.
-        //
-        // Example worker script (miner-worker.js):
-        //   importScripts('/randomx.wasm.js');
-        //   onmessage = (e) => {
-        //     const { blob, target, startNonce } = e.data;
-        //     // hash loop with throttle based on cpuUsage
-        //     while (running) {
-        //       const result = randomx_hash(blob, nonce);
-        //       hashCount++;
-        //       if (meetsTarget(result, target)) {
-        //         postMessage({ type: 'share', nonce, result });
-        //       }
-        //       nonce++;
-        //     }
-        //   };
-        //
-        // For now we create a simulated worker using a Blob:
+        // In production, replace this with actual RandomX WASM worker.
+        // The worker loads randomx.wasm and hashes against job blob/target.
         const workerCode = `
           let running = false;
           let hashCount = 0;
@@ -111,7 +109,6 @@ export const useWebSocketMiner = ({
                 hashCount += hashesPerTick;
                 self.postMessage({ type: 'hashCount', count: hashCount });
                 
-                // Simulate finding a share (~every 500 hashes)
                 if (hashCount % 500 < hashesPerTick) {
                   self.postMessage({ 
                     type: 'share', 
@@ -121,7 +118,6 @@ export const useWebSocketMiner = ({
                   });
                 }
                 
-                // Throttle: higher cpuUsage = shorter delay
                 const delay = Math.max(10, Math.floor((1 - throttle) * 200));
                 setTimeout(mine, delay);
               };
@@ -138,7 +134,6 @@ export const useWebSocketMiner = ({
           if (e.data.type === "hashCount") {
             hashCountRef.current = e.data.count;
           } else if (e.data.type === "share" && wsRef.current?.readyState === WebSocket.OPEN) {
-            // Submit share to proxy
             wsRef.current.send(
               JSON.stringify({
                 type: "submit",
@@ -166,8 +161,16 @@ export const useWebSocketMiner = ({
 
   /** Connect to mining proxy */
   const connect = useCallback(() => {
+    if (!proxyUrl) {
+      updateStats({ status: "No proxy URL configured" });
+      return;
+    }
+    if (!proxyEnabled) {
+      updateStats({ status: "Proxy disabled by admin" });
+      return;
+    }
     if (!session?.access_token) {
-      updateStats({ status: "No auth token" });
+      updateStats({ status: "Not authenticated" });
       return;
     }
 
@@ -178,7 +181,6 @@ export const useWebSocketMiner = ({
 
     ws.onopen = () => {
       updateStats({ isConnected: true, status: "authenticating" });
-      // Authenticate with the proxy
       ws.send(
         JSON.stringify({
           type: "auth",
@@ -199,22 +201,15 @@ export const useWebSocketMiner = ({
               jobId: msg.jobId,
               blob: msg.blob,
               target: msg.target,
-              height: msg.height,
             });
             break;
 
           case "accepted":
-            setStats((prev) => ({
-              ...prev,
-              acceptedShares: prev.acceptedShares + 1,
-            }));
+            setStats((prev) => ({ ...prev, acceptedShares: prev.acceptedShares + 1 }));
             break;
 
           case "rejected":
-            setStats((prev) => ({
-              ...prev,
-              rejectedShares: prev.rejectedShares + 1,
-            }));
+            setStats((prev) => ({ ...prev, rejectedShares: prev.rejectedShares + 1 }));
             break;
 
           case "error":
@@ -222,26 +217,24 @@ export const useWebSocketMiner = ({
             break;
         }
       } catch {
-        // ignore parse errors
+        // ignore
       }
     };
 
     ws.onclose = () => {
-      updateStats({ isConnected: false, isMining: false, status: "disconnected" });
-      // Auto-reconnect after 5 seconds
+      updateStats({ isConnected: false, isMining: false, status: "disconnected — reconnecting..." });
       reconnectTimeoutRef.current = setTimeout(connect, 5000);
     };
 
     ws.onerror = () => {
       updateStats({ status: "connection error" });
     };
-  }, [proxyUrl, session?.access_token, threads, spawnWorkers, updateStats]);
+  }, [proxyUrl, proxyEnabled, session?.access_token, threads, spawnWorkers, updateStats]);
 
   /** Start mining */
   const startMining = useCallback(() => {
     connect();
 
-    // Track hashrate every second
     let lastCount = 0;
     statsIntervalRef.current = setInterval(() => {
       const current = hashCountRef.current * threads;
@@ -257,35 +250,24 @@ export const useWebSocketMiner = ({
 
   /** Stop mining */
   const stopMining = useCallback(() => {
-    // Close WebSocket
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
-    // Stop reconnect
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-    // Terminate workers
+    if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     workersRef.current.forEach((w) => {
       w.postMessage({ type: "stop" });
       w.terminate();
     });
     workersRef.current = [];
-    // Clear interval
-    if (statsIntervalRef.current) {
-      clearInterval(statsIntervalRef.current);
-    }
+    if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
     hashCountRef.current = 0;
     updateStats({ hashrate: 0, isConnected: false, isMining: false, status: "idle" });
   }, [updateStats]);
 
-  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      stopMining();
-    };
+    return () => { stopMining(); };
   }, [stopMining]);
 
-  return { stats, startMining, stopMining };
+  return { stats, startMining, stopMining, proxyUrl, proxyEnabled, refetchConfig: fetchProxyConfig };
 };
