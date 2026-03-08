@@ -75,7 +75,7 @@ const BenchmarkPage = () => {
         <div className="container mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <Cpu className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold font-display text-glow">HARIMINE</span>
+            <span className="text-lg font-bold font-display text-glow">SHRIMINE</span>
           </Link>
           <Link to="/"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button></Link>
         </div>
