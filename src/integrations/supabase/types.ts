@@ -149,6 +149,50 @@ export type Database = {
         }
         Relationships: []
       }
+      share_submissions: {
+        Row: {
+          created_at: string
+          difficulty: number
+          id: string
+          is_valid: boolean
+          job_id: string
+          nonce: string
+          result: string
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          difficulty?: number
+          id?: string
+          is_valid?: boolean
+          job_id: string
+          nonce: string
+          result: string
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          difficulty?: number
+          id?: string
+          is_valid?: boolean
+          job_id?: string
+          nonce?: string
+          result?: string
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_submissions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "mining_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
