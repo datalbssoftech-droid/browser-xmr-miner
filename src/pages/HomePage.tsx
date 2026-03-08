@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Cpu, Pickaxe, Users, Shield, ArrowRight, Zap, Globe, Activity, DollarSign, Hash } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { NetworkBackground } from "@/components/NetworkBackground";
+import { InteractiveGlobe } from "@/components/ui/interactive-globe";
 import { HomeMiningWidget } from "@/components/HomeMiningWidget";
 import { StatCard } from "@/components/StatCard";
 import { XmrLiveTicker } from "@/components/XmrLiveTicker";
