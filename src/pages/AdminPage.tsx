@@ -5,31 +5,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Users, Pickaxe, Wallet, Settings, Activity, CheckCircle, XCircle } from "lucide-react";
+import { Users, Pickaxe, Wallet, Settings, Activity, CheckCircle, XCircle, Server, Wifi, WifiOff, Globe, Shield, Hash } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminPage = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [shares, setShares] = useState<any[]>([]);
   const [config, setConfig] = useState<Record<string, string>>({});
   const [configSaving, setConfigSaving] = useState(false);
+  const [testingProxy, setTestingProxy] = useState(false);
+  const [proxyTestResult, setProxyTestResult] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAll();
   }, []);
 
   const fetchAll = async () => {
-    const [p, s, w, c] = await Promise.all([
+    const [p, s, w, c, sh] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("mining_sessions").select("*").order("started_at", { ascending: false }).limit(50),
       supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
       supabase.from("platform_config").select("*"),
+      supabase.from("share_submissions").select("*").order("created_at", { ascending: false }).limit(50),
     ]);
     setUsers(p.data || []);
     setSessions(s.data || []);
     setWithdrawals(w.data || []);
+    setShares(sh.data || []);
     const cfg: Record<string, string> = {};
     (c.data || []).forEach((item: any) => { cfg[item.key] = item.value; });
     setConfig(cfg);
@@ -38,6 +44,8 @@ const AdminPage = () => {
   const activeSessions = sessions.filter((s) => s.is_active);
   const totalHashrate = activeSessions.reduce((sum, s) => sum + s.hashrate, 0);
   const pendingWithdrawals = withdrawals.filter((w) => w.status === "pending");
+  const validShares = shares.filter((s) => s.is_valid).length;
+  const invalidShares = shares.filter((s) => !s.is_valid).length;
 
   const handleWithdrawal = async (id: string, status: "approved" | "rejected") => {
     const { error } = await supabase.from("withdrawals").update({ status, processed_at: new Date().toISOString() }).eq("id", id);
@@ -57,6 +65,23 @@ const AdminPage = () => {
     setConfigSaving(false);
   };
 
+  const testProxyConnection = async () => {
+    setTestingProxy(true);
+    setProxyTestResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("mining-proxy", {
+        method: "GET",
+      });
+      if (error) throw error;
+      setProxyTestResult(`✅ Edge function responding. Pool: ${data.pool_url}:${data.pool_port} | Proxy enabled: ${data.proxy_enabled}`);
+    } catch (err: any) {
+      setProxyTestResult(`❌ Error: ${err.message}`);
+    }
+    setTestingProxy(false);
+  };
+
+  const proxyEnabled = config.proxy_enabled === "true";
+
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto">
@@ -66,21 +91,242 @@ const AdminPage = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <StatCard icon={Users} label="Total Users" value={String(users.length)} />
-          <StatCard icon={Pickaxe} label="Active Miners" value={String(activeSessions.length)} trend="up" />
+          <StatCard icon={Pickaxe} label="Active Miners" value={String(activeSessions.length)} trend={activeSessions.length > 0 ? "up" : "neutral"} />
           <StatCard icon={Activity} label="Network Hashrate" value={`${totalHashrate.toFixed(0)} H/s`} />
+          <StatCard icon={Hash} label="Shares" value={`${validShares} / ${validShares + invalidShares}`} subtitle={`${invalidShares} rejected`} />
           <StatCard icon={Wallet} label="Pending Withdrawals" value={String(pendingWithdrawals.length)} />
         </div>
 
-        <Tabs defaultValue="withdrawals">
-          <TabsList className="bg-secondary border border-border mb-6">
+        <Tabs defaultValue="proxy">
+          <TabsList className="bg-secondary border border-border mb-6 flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="proxy">Proxy & Pool</TabsTrigger>
             <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="sessions">Sessions</TabsTrigger>
-            <TabsTrigger value="config">Config</TabsTrigger>
+            <TabsTrigger value="shares">Shares</TabsTrigger>
+            <TabsTrigger value="config">Platform</TabsTrigger>
           </TabsList>
 
+          {/* ─── Proxy & Pool Configuration ─── */}
+          <TabsContent value="proxy">
+            <div className="space-y-6">
+              {/* Proxy Status */}
+              <div className="stat-card">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Server className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Mining Proxy</h3>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">{proxyEnabled ? "Enabled" : "Disabled"}</span>
+                    <Switch
+                      checked={proxyEnabled}
+                      onCheckedChange={(checked) => setConfig({ ...config, proxy_enabled: checked ? "true" : "false" })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-secondary text-sm font-mono">
+                  {proxyEnabled ? (
+                    <Wifi className="h-4 w-4 text-success shrink-0" />
+                  ) : (
+                    <WifiOff className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="text-muted-foreground truncate">{config.proxy_url || "Not configured"}</span>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <Label>Proxy WebSocket URL</Label>
+                    <Input
+                      value={config.proxy_url || ""}
+                      onChange={(e) => setConfig({ ...config, proxy_url: e.target.value })}
+                      placeholder="wss://proxy.yourdomain.com"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Your deployed WebSocket proxy server URL
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Max Connections</Label>
+                    <Input
+                      value={config.proxy_max_connections || ""}
+                      onChange={(e) => setConfig({ ...config, proxy_max_connections: e.target.value })}
+                      placeholder="1000"
+                      type="number"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mb-4">
+                  <Switch
+                    checked={config.proxy_auth_required !== "false"}
+                    onCheckedChange={(checked) => setConfig({ ...config, proxy_auth_required: checked ? "true" : "false" })}
+                  />
+                  <div>
+                    <span className="text-sm font-medium">Require Authentication</span>
+                    <p className="text-xs text-muted-foreground">Miners must provide a valid JWT to connect</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button variant="neon" onClick={saveConfig} disabled={configSaving}>
+                    {configSaving ? "Saving..." : "Save Proxy Config"}
+                  </Button>
+                  <Button variant="neon-outline" onClick={testProxyConnection} disabled={testingProxy}>
+                    {testingProxy ? "Testing..." : "Test Connection"}
+                  </Button>
+                </div>
+                {proxyTestResult && (
+                  <div className="mt-3 px-3 py-2 rounded-lg bg-secondary text-sm font-mono">
+                    {proxyTestResult}
+                  </div>
+                )}
+              </div>
+
+              {/* Pool Configuration */}
+              <div className="stat-card">
+                <div className="flex items-center gap-2 mb-4">
+                  <Globe className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Mining Pool Configuration</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Configure the Stratum pool your proxy connects to. Changes apply to new mining sessions.
+                </p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Pool URL</Label>
+                    <Input
+                      value={config.pool_url || ""}
+                      onChange={(e) => setConfig({ ...config, pool_url: e.target.value })}
+                      placeholder="pool.supportxmr.com"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label>Pool Port</Label>
+                    <Input
+                      value={config.pool_port || ""}
+                      onChange={(e) => setConfig({ ...config, pool_port: e.target.value })}
+                      placeholder="3333"
+                      type="number"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Pool Wallet Address</Label>
+                    <Input
+                      value={config.pool_wallet || ""}
+                      onChange={(e) => setConfig({ ...config, pool_wallet: e.target.value })}
+                      placeholder="4..."
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      The XMR wallet address used for pool payouts (platform wallet)
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Worker Name Prefix</Label>
+                    <Input
+                      value={config.worker_prefix || ""}
+                      onChange={(e) => setConfig({ ...config, worker_prefix: e.target.value })}
+                      placeholder="harimine"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label>Pool Password</Label>
+                    <Input
+                      value={config.pool_password || ""}
+                      onChange={(e) => setConfig({ ...config, pool_password: e.target.value })}
+                      placeholder="x"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                  </div>
+                </div>
+                <Button variant="neon" className="mt-6" onClick={saveConfig} disabled={configSaving}>
+                  {configSaving ? "Saving..." : "Save Pool Config"}
+                </Button>
+              </div>
+
+              {/* Reward Configuration */}
+              <div className="stat-card">
+                <div className="flex items-center gap-2 mb-4">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Reward & Fee Settings</h3>
+                </div>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Share Reward Rate (XMR)</Label>
+                    <Input
+                      value={config.share_reward_rate || ""}
+                      onChange={(e) => setConfig({ ...config, share_reward_rate: e.target.value })}
+                      placeholder="0.000000001"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">XMR per share × difficulty</p>
+                  </div>
+                  <div>
+                    <Label>Platform Fee (%)</Label>
+                    <Input
+                      value={config.platform_fee || ""}
+                      onChange={(e) => setConfig({ ...config, platform_fee: e.target.value })}
+                      placeholder="5"
+                      type="number"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label>Referral Commission (%)</Label>
+                    <Input
+                      value={config.referral_percentage || ""}
+                      onChange={(e) => setConfig({ ...config, referral_percentage: e.target.value })}
+                      placeholder="5"
+                      type="number"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                  </div>
+                </div>
+                <Button variant="neon" className="mt-6" onClick={saveConfig} disabled={configSaving}>
+                  {configSaving ? "Saving..." : "Save Reward Settings"}
+                </Button>
+              </div>
+
+              {/* API Documentation */}
+              <div className="stat-card">
+                <h3 className="font-semibold mb-3">Proxy Server API Reference</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Your proxy server should call these endpoints to integrate with the platform:
+                </p>
+                <div className="space-y-3 font-mono text-sm">
+                  {[
+                    { method: "GET", desc: "Fetch pool/proxy configuration", action: "" },
+                    { method: "POST", desc: "Validate miner JWT token", action: '{ "action": "auth", "token": "..." }' },
+                    { method: "POST", desc: "Record an accepted share", action: '{ "action": "submit_share", "user_id": "...", "job_id": "...", "nonce": "...", "result": "...", "difficulty": 1000, "is_valid": true }' },
+                    { method: "POST", desc: "Update session hashrate", action: '{ "action": "update_session", "user_id": "...", "hashrate": 45.2, "total_hashes": 50000 }' },
+                    { method: "POST", desc: "End mining session", action: '{ "action": "end_session", "user_id": "...", "total_hashes": 50000 }' },
+                  ].map(({ method, desc, action }, i) => (
+                    <div key={i} className="p-3 rounded-lg bg-secondary border border-border/50">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs px-2 py-0.5 rounded font-bold ${method === "GET" ? "bg-primary/20 text-primary" : "bg-success/20 text-success"}`}>
+                          {method}
+                        </span>
+                        <span className="text-foreground text-xs">/functions/v1/mining-proxy</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-1">{desc}</p>
+                      {action && <code className="text-xs text-muted-foreground break-all">{action}</code>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ─── Withdrawals ─── */}
           <TabsContent value="withdrawals">
             <div className="stat-card">
               <h3 className="font-semibold mb-4">Withdrawal Requests</h3>
@@ -118,9 +364,10 @@ const AdminPage = () => {
             </div>
           </TabsContent>
 
+          {/* ─── Users ─── */}
           <TabsContent value="users">
             <div className="stat-card">
-              <h3 className="font-semibold mb-4">All Users</h3>
+              <h3 className="font-semibold mb-4">All Users ({users.length})</h3>
               <div className="space-y-3">
                 {users.map((u) => (
                   <div key={u.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
@@ -135,15 +382,17 @@ const AdminPage = () => {
             </div>
           </TabsContent>
 
+          {/* ─── Sessions ─── */}
           <TabsContent value="sessions">
             <div className="stat-card">
-              <h3 className="font-semibold mb-4">Mining Sessions</h3>
+              <h3 className="font-semibold mb-4">Mining Sessions ({sessions.length})</h3>
               <div className="space-y-3">
-                {sessions.slice(0, 20).map((s) => (
+                {sessions.slice(0, 30).map((s) => (
                   <div key={s.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
                     <div>
-                      <p className="text-sm font-mono">{s.hashrate.toFixed(0)} H/s · {s.threads} threads</p>
+                      <p className="text-sm font-mono">{s.hashrate.toFixed(0)} H/s · {s.threads} threads · {s.cpu_usage}% CPU</p>
                       <p className="text-xs text-muted-foreground">{new Date(s.started_at).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground font-mono">Hashes: {(s.total_hashes || 0).toLocaleString()}</p>
                     </div>
                     <div className={`h-2.5 w-2.5 rounded-full ${s.is_active ? "bg-success animate-pulse-neon" : "bg-muted-foreground"}`} />
                   </div>
@@ -152,35 +401,51 @@ const AdminPage = () => {
             </div>
           </TabsContent>
 
+          {/* ─── Shares ─── */}
+          <TabsContent value="shares">
+            <div className="stat-card">
+              <h3 className="font-semibold mb-4">
+                Share Submissions — {validShares} accepted, {invalidShares} rejected
+              </h3>
+              {shares.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No shares submitted yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {shares.map((s) => (
+                    <div key={s.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                      <div>
+                        <p className="text-sm font-mono">Job: {s.job_id.slice(0, 12)}... · Nonce: {s.nonce}</p>
+                        <p className="text-xs text-muted-foreground">Difficulty: {s.difficulty} · {new Date(s.created_at).toLocaleString()}</p>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded-full ${s.is_valid ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}>
+                        {s.is_valid ? "valid" : "invalid"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* ─── Platform Config ─── */}
           <TabsContent value="config">
             <div className="stat-card">
               <div className="flex items-center gap-2 mb-6">
                 <Settings className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold">Platform Configuration</h3>
+                <h3 className="font-semibold">General Platform Settings</h3>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
-                {[
-                  { key: "pool_url", label: "Pool URL" },
-                  { key: "pool_port", label: "Pool Port" },
-                  { key: "pool_wallet", label: "Pool Wallet" },
-                  { key: "worker_prefix", label: "Worker Prefix" },
-                  { key: "pool_password", label: "Pool Password" },
-                  { key: "min_withdrawal", label: "Min Withdrawal (XMR)" },
-                  { key: "platform_fee", label: "Platform Fee (%)" },
-                  { key: "referral_percentage", label: "Referral %" },
-                ].map(({ key, label }) => (
-                  <div key={key}>
-                    <Label>{label}</Label>
-                    <Input
-                      value={config[key] || ""}
-                      onChange={(e) => setConfig({ ...config, [key]: e.target.value })}
-                      className="mt-1 bg-secondary border-border font-mono text-sm"
-                    />
-                  </div>
-                ))}
+                <div>
+                  <Label>Min Withdrawal (XMR)</Label>
+                  <Input
+                    value={config.min_withdrawal || ""}
+                    onChange={(e) => setConfig({ ...config, min_withdrawal: e.target.value })}
+                    className="mt-1 bg-secondary border-border font-mono text-sm"
+                  />
+                </div>
               </div>
               <Button variant="neon" className="mt-6" onClick={saveConfig} disabled={configSaving}>
-                {configSaving ? "Saving..." : "Save Configuration"}
+                {configSaving ? "Saving..." : "Save Settings"}
               </Button>
             </div>
           </TabsContent>
