@@ -14,6 +14,11 @@ import WithdrawalPage from "./pages/WithdrawalPage";
 import ReferralPage from "./pages/ReferralPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
+import FAQPage from "./pages/FAQPage";
 import NotFound from "./pages/NotFound";
 import CalculatorPage from "./pages/tools/CalculatorPage";
 import HashrateConverterPage from "./pages/tools/HashrateConverterPage";
@@ -38,6 +43,11 @@ const App = () => (
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/faq" element={<FAQPage />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/mining" element={<ProtectedRoute><MiningPage /></ProtectedRoute>} />
             <Route path="/withdrawals" element={<ProtectedRoute><WithdrawalPage /></ProtectedRoute>} />
