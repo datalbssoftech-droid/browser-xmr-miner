@@ -93,7 +93,10 @@ export const MiningControls = () => {
           You can adjust CPU usage and stop mining at any time.
         </p>
         <div className="flex gap-3 justify-center">
-          <Button variant="neon" onClick={() => setConsented(true)}>
+          <Button variant="neon" onClick={() => {
+            localStorage.setItem("mining_consent", "true");
+            setConsented(true);
+          }}>
             I Agree — Start Mining
           </Button>
         </div>
