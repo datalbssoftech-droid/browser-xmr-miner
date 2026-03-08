@@ -259,7 +259,7 @@ const HomePage = () => {
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between text-xs sm:text-sm text-muted-foreground gap-2">
           <div className="flex items-center gap-2">
             <Cpu className="h-4 w-4 text-primary" />
-            <span className="font-display">HARIMINE</span>
+            <span className="font-display">SHRIMINE</span>
           </div>
           <p>© 2026 Harimine. All rights reserved.</p>
         </div>
