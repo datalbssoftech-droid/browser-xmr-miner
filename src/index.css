@@ -77,8 +77,9 @@
     text-shadow: 0 0 20px hsl(var(--neon) / 0.6), 0 0 40px hsl(var(--neon) / 0.3), 0 0 80px hsl(var(--neon) / 0.1);
   }
   .text-glow-strong {
-    color: hsl(var(--primary));
-    text-shadow: 0 0 10px hsl(var(--neon) / 0.8), 0 0 30px hsl(var(--neon) / 0.4), 0 0 60px hsl(var(--neon) / 0.2);
+    color: hsl(var(--neon-glow));
+    text-shadow: 0 0 8px hsl(var(--neon) / 0.5), 0 0 20px hsl(var(--neon) / 0.2);
+    animation: neon-flicker 3s ease-in-out infinite;
   }
   .gradient-neon {
     background: linear-gradient(135deg, hsl(var(--neon)), hsl(var(--neon-glow)));
@@ -115,6 +116,10 @@
 @keyframes pulse-neon {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+@keyframes neon-flicker {
+  0%, 100% { opacity: 1; text-shadow: 0 0 8px hsl(var(--neon) / 0.5), 0 0 20px hsl(var(--neon) / 0.2); }
+  50% { opacity: 0.85; text-shadow: 0 0 12px hsl(var(--neon) / 0.7), 0 0 30px hsl(var(--neon) / 0.3); }
 }
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(20px); }
