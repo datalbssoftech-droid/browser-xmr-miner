@@ -8,6 +8,7 @@ import { StatCard } from "@/components/StatCard";
 import { XmrLiveTicker } from "@/components/XmrLiveTicker";
 import { XmrNewsFeed } from "@/components/XmrNewsFeed";
 import { useXmrMarketData } from "@/hooks/useXmrMarketData";
+import { usePlatformStats, formatHashrate } from "@/hooks/usePlatformStats";
 
 const HomePage = () => {
   const { user } = useAuth();
