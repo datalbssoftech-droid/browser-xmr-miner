@@ -21,7 +21,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
       <aside className="hidden lg:flex flex-col w-64 glass border-r border-border/50 p-4 fixed inset-y-0 left-0 z-40">
         <Link to="/" className="flex items-center gap-2 mb-8 px-2">
           <Cpu className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold text-glow font-display">HARIMINE</span>
+          <span className="text-xl font-bold text-glow font-display">SHRIMINE</span>
         </Link>
         <nav className="flex-1 space-y-1">
           {navItems.map(({ to, label, icon: Icon }) => (
