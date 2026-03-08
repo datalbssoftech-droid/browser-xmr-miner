@@ -121,14 +121,14 @@ const HomePage = () => {
       </header>
 
       {/* ─── Hero ─── */}
-      <section className="relative pt-20 sm:pt-32 pb-8 sm:pb-16 px-4 overflow-hidden min-h-[auto] sm:min-h-[85vh] flex items-center">
+      <section className="relative pt-16 sm:pt-24 pb-6 sm:pb-10 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(199_89%_48%/0.08)_0%,_transparent_65%)]" />
         <div className="container mx-auto relative z-10">
-          <div className="relative lg:grid lg:grid-cols-2 lg:gap-8 lg:items-center">
+          <div className="relative lg:grid lg:grid-cols-2 lg:gap-6 lg:items-center">
             <div className="flex justify-center lg:justify-end lg:order-2 mx-auto lg:mx-0">
-              <div className="w-[200px] h-[200px] sm:w-[300px] sm:h-[300px] lg:w-[500px] lg:h-[500px] opacity-70 lg:opacity-100">
+              <div className="w-[160px] h-[160px] sm:w-[220px] sm:h-[220px] lg:w-[380px] lg:h-[380px] opacity-70 lg:opacity-100">
                 <InteractiveGlobe
-                  size={500}
+                  size={380}
                   dotColor="hsla(199, 89%, 48%, ALPHA)"
                   arcColor="hsla(199, 89%, 48%, 0.5)"
                   markerColor="hsla(199, 89%, 60%, 1)"
@@ -137,31 +137,31 @@ const HomePage = () => {
                 />
               </div>
             </div>
-            <div className="text-center lg:text-left lg:order-1 -mt-12 sm:-mt-4 lg:mt-0 relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs sm:text-sm text-primary font-mono mb-4 sm:mb-6 animate-slide-up">
+            <div className="text-center lg:text-left lg:order-1 -mt-8 sm:-mt-2 lg:mt-0 relative z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs sm:text-sm text-primary font-mono mb-3 sm:mb-4 animate-slide-up">
                 <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
                 Browser-Based XMR Mining
               </div>
-              <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-black mb-4 sm:mb-6 leading-tight tracking-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-black mb-3 sm:mb-4 leading-tight tracking-tight">
                 <span className="animate-typing">Mine</span>{" "}
                 <span className="text-glow-strong">Monero</span>
                 <br className="hidden sm:block" />
                 <span className="sm:hidden"> </span>
                 in Your Browser
               </h1>
-              <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 sm:mb-10">
+              <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-4 sm:mb-6">
                 No hardware. No downloads. Start mining XMR using your CPU — just open your browser and earn.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center lg:justify-start">
                 <Link to={user ? "/mining" : "/register"}>
-                  <Button variant="neon" size="lg" className="text-sm sm:text-base px-6 sm:px-8 w-full sm:w-auto font-display">
-                    <Pickaxe className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  <Button variant="neon" size="default" className="text-sm px-5 w-full sm:w-auto font-display">
+                    <Pickaxe className="h-4 w-4 mr-2" />
                     Start Mining
-                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 ml-2" />
+                    <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </Link>
                 <Link to="/login">
-                  <Button variant="neon-outline" size="lg" className="text-sm sm:text-base px-6 sm:px-8 w-full sm:w-auto font-display">
+                  <Button variant="neon-outline" size="default" className="text-sm px-5 w-full sm:w-auto font-display">
                     Login
                   </Button>
                 </Link>
