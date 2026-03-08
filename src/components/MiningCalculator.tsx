@@ -32,7 +32,7 @@ export const MiningCalculator = ({ compact = true }: MiningCalculatorProps) => {
   const dailyProfit = usdPerDay - dailyElectricityCost;
 
   return (
-    <section className={compact ? "py-12 sm:py-20 px-4 border-t border-border/50" : ""}>
+    <section className={compact ? "py-8 sm:py-12 px-4 border-t border-border/50" : ""}>
       <div className={compact ? "container mx-auto max-w-4xl" : ""}>
         {compact && (
           <>
