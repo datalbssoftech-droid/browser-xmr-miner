@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Cpu, Play, Square, Activity, Wifi, WifiOff, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebSocketMiner } from "@/hooks/useWebSocketMiner";
+import { HashrateGraph, useHashrateHistory, type HashrateDataPoint } from "@/components/HashrateGraph";
 import { toast } from "sonner";
 
 export const MiningControls = () => {
@@ -12,15 +13,42 @@ export const MiningControls = () => {
   const [cpuUsage, setCpuUsage] = useState(50);
   const [threads, setThreads] = useState(Math.max(1, Math.floor(navigator.hardwareConcurrency / 2) || 2));
   const [consented, setConsented] = useState(false);
+  const [graphData, setGraphData] = useState<HashrateDataPoint[]>([]);
   const maxThreads = navigator.hardwareConcurrency || 4;
+  const prevSharesRef = useRef(0);
+  const graphIntervalRef = useRef<ReturnType<typeof setInterval>>();
+
+  const { addPoint, clear: clearHistory } = useHashrateHistory(120);
 
   const { stats, startMining: wsStart, stopMining: wsStop, proxyUrl, proxyEnabled } = useWebSocketMiner({
     threads,
     cpuUsage,
   });
 
+  // Update graph every second while mining
+  useEffect(() => {
+    if (stats.isMining || stats.hashrate > 0) {
+      graphIntervalRef.current = setInterval(() => {
+        const newShares = stats.acceptedShares - prevSharesRef.current;
+        prevSharesRef.current = stats.acceptedShares;
+        const updated = addPoint(stats.hashrate, newShares);
+        setGraphData(updated);
+      }, 1000);
+    } else {
+      if (graphIntervalRef.current) clearInterval(graphIntervalRef.current);
+    }
+
+    return () => {
+      if (graphIntervalRef.current) clearInterval(graphIntervalRef.current);
+    };
+  }, [stats.isMining, stats.hashrate, stats.acceptedShares, addPoint]);
+
   const startMining = async () => {
     if (!user) return;
+
+    clearHistory();
+    setGraphData([]);
+    prevSharesRef.current = 0;
 
     await supabase.from("mining_sessions").insert({
       user_id: user.id,
@@ -186,6 +214,9 @@ export const MiningControls = () => {
           )}
         </div>
       </div>
+
+      {/* Real-time Hashrate Graph */}
+      <HashrateGraph data={graphData} maxPoints={120} />
     </div>
   );
 };
