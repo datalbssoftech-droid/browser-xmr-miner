@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Users, Pickaxe, Wallet, Settings, Activity, CheckCircle, XCircle, Server, Wifi, WifiOff, Globe, Shield, Hash } from "lucide-react";
+import { Users, Pickaxe, Wallet, Settings, Activity, CheckCircle, XCircle, Server, Wifi, WifiOff, Globe, Shield, Hash, BookOpen, Mail, Plus, Trash2, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminPage = () => {
@@ -19,23 +20,31 @@ const AdminPage = () => {
   const [configSaving, setConfigSaving] = useState(false);
   const [testingProxy, setTestingProxy] = useState(false);
   const [proxyTestResult, setProxyTestResult] = useState<string | null>(null);
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [editingPost, setEditingPost] = useState<any | null>(null);
+  const [newPost, setNewPost] = useState({ title: "", slug: "", excerpt: "", content: "", cover_image: "", is_published: false });
 
   useEffect(() => {
     fetchAll();
   }, []);
 
   const fetchAll = async () => {
-    const [p, s, w, c, sh] = await Promise.all([
+    const [p, s, w, c, sh, bp, ns] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("mining_sessions").select("*").order("started_at", { ascending: false }).limit(50),
       supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
       supabase.from("platform_config").select("*"),
       supabase.from("share_submissions").select("*").order("created_at", { ascending: false }).limit(50),
+      supabase.from("blog_posts").select("*").order("created_at", { ascending: false }),
+      supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }),
     ]);
     setUsers(p.data || []);
     setSessions(s.data || []);
     setWithdrawals(w.data || []);
     setShares(sh.data || []);
+    setBlogPosts(bp.data || []);
+    setSubscribers(ns.data || []);
     const cfg: Record<string, string> = {};
     (c.data || []).forEach((item: any) => { cfg[item.key] = item.value; });
     setConfig(cfg);
@@ -111,6 +120,8 @@ const AdminPage = () => {
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="sessions">Sessions</TabsTrigger>
             <TabsTrigger value="shares">Shares</TabsTrigger>
+            <TabsTrigger value="blog">Blog</TabsTrigger>
+            <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
             <TabsTrigger value="config">Platform</TabsTrigger>
           </TabsList>
 
@@ -473,6 +484,180 @@ const AdminPage = () => {
                       <span className={`text-xs px-2 py-1 rounded-full ${s.is_valid ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}>
                         {s.is_valid ? "valid" : "invalid"}
                       </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* ─── Blog Management ─── */}
+          <TabsContent value="blog">
+            <div className="space-y-6">
+              {/* Add/Edit Post Form */}
+              <div className="stat-card">
+                <div className="flex items-center gap-2 mb-4">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">{editingPost ? "Edit Post" : "Add New Post"}</h3>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <Label>Title</Label>
+                    <Input
+                      value={editingPost?.title ?? newPost.title}
+                      onChange={(e) => editingPost ? setEditingPost({ ...editingPost, title: e.target.value }) : setNewPost({ ...newPost, title: e.target.value })}
+                      placeholder="Post title"
+                      className="mt-1 bg-secondary border-border"
+                    />
+                  </div>
+                  <div>
+                    <Label>Slug</Label>
+                    <Input
+                      value={editingPost?.slug ?? newPost.slug}
+                      onChange={(e) => editingPost ? setEditingPost({ ...editingPost, slug: e.target.value }) : setNewPost({ ...newPost, slug: e.target.value })}
+                      placeholder="post-url-slug"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Excerpt</Label>
+                    <Input
+                      value={editingPost?.excerpt ?? newPost.excerpt}
+                      onChange={(e) => editingPost ? setEditingPost({ ...editingPost, excerpt: e.target.value }) : setNewPost({ ...newPost, excerpt: e.target.value })}
+                      placeholder="Short description"
+                      className="mt-1 bg-secondary border-border"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Cover Image URL</Label>
+                    <Input
+                      value={editingPost?.cover_image ?? newPost.cover_image}
+                      onChange={(e) => editingPost ? setEditingPost({ ...editingPost, cover_image: e.target.value }) : setNewPost({ ...newPost, cover_image: e.target.value })}
+                      placeholder="https://..."
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Content</Label>
+                    <Textarea
+                      value={editingPost?.content ?? newPost.content}
+                      onChange={(e) => editingPost ? setEditingPost({ ...editingPost, content: e.target.value }) : setNewPost({ ...newPost, content: e.target.value })}
+                      placeholder="Write your post content here..."
+                      rows={6}
+                      className="mt-1 bg-secondary border-border"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={editingPost?.is_published ?? newPost.is_published}
+                      onCheckedChange={(checked) => editingPost ? setEditingPost({ ...editingPost, is_published: checked }) : setNewPost({ ...newPost, is_published: checked })}
+                    />
+                    <span className="text-sm">Publish immediately</span>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="neon" onClick={async () => {
+                    const postData = editingPost || newPost;
+                    if (!postData.title || !postData.slug || !postData.content) {
+                      toast.error("Title, slug, and content are required");
+                      return;
+                    }
+                    if (editingPost) {
+                      const { error } = await supabase.from("blog_posts").update({
+                        title: postData.title,
+                        slug: postData.slug,
+                        excerpt: postData.excerpt,
+                        content: postData.content,
+                        cover_image: postData.cover_image,
+                        is_published: postData.is_published,
+                        published_at: postData.is_published ? new Date().toISOString() : null,
+                      }).eq("id", editingPost.id);
+                      if (error) toast.error("Failed to update post");
+                      else { toast.success("Post updated!"); setEditingPost(null); fetchAll(); }
+                    } else {
+                      const { error } = await supabase.from("blog_posts").insert({
+                        ...postData,
+                        published_at: postData.is_published ? new Date().toISOString() : null,
+                      });
+                      if (error) toast.error("Failed to create post");
+                      else { toast.success("Post created!"); setNewPost({ title: "", slug: "", excerpt: "", content: "", cover_image: "", is_published: false }); fetchAll(); }
+                    }
+                  }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    {editingPost ? "Update Post" : "Create Post"}
+                  </Button>
+                  {editingPost && (
+                    <Button variant="neon-outline" onClick={() => setEditingPost(null)}>Cancel</Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Posts List */}
+              <div className="stat-card">
+                <h3 className="font-semibold mb-4">All Posts ({blogPosts.length})</h3>
+                {blogPosts.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No blog posts yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {blogPosts.map((post) => (
+                      <div key={post.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                        <div>
+                          <p className="font-medium">{post.title}</p>
+                          <p className="text-xs text-muted-foreground font-mono">/{post.slug} · {new Date(post.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-1 rounded-full ${post.is_published ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"}`}>
+                            {post.is_published ? "Published" : "Draft"}
+                          </span>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingPost(post)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
+                            if (!confirm("Delete this post?")) return;
+                            await supabase.from("blog_posts").delete().eq("id", post.id);
+                            toast.success("Post deleted");
+                            fetchAll();
+                          }}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ─── Newsletter Management ─── */}
+          <TabsContent value="newsletter">
+            <div className="stat-card">
+              <div className="flex items-center gap-2 mb-4">
+                <Mail className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Newsletter Subscribers ({subscribers.length})</h3>
+              </div>
+              {subscribers.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No subscribers yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {subscribers.map((sub) => (
+                    <div key={sub.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                      <div>
+                        <p className="font-mono text-sm">{sub.email}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(sub.subscribed_at).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-1 rounded-full ${sub.is_active ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"}`}>
+                          {sub.is_active ? "Active" : "Unsubscribed"}
+                        </span>
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
+                          await supabase.from("newsletter_subscribers").delete().eq("id", sub.id);
+                          toast.success("Subscriber removed");
+                          fetchAll();
+                        }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
