@@ -38,6 +38,33 @@ const HomePage = () => {
   const market = data?.market;
   const news = data?.news;
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
+
+  useEffect(() => {
+    supabase.from("blog_posts").select("*").eq("is_published", true).order("published_at", { ascending: false }).limit(3).then(({ data }) => {
+      setBlogPosts(data || []);
+    });
+  }, []);
+
+  const handleNewsletterSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail) return;
+    setSubscribing(true);
+    const { error } = await supabase.from("newsletter_subscribers").insert({ email: newsletterEmail });
+    if (error) {
+      if (error.code === "23505") {
+        toast.info("You're already subscribed!");
+      } else {
+        toast.error("Subscription failed. Try again.");
+      }
+    } else {
+      toast.success("Successfully subscribed!");
+      setNewsletterEmail("");
+    }
+    setSubscribing(false);
+  };
 
   return (
     <div className="min-h-screen">
