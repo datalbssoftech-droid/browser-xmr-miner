@@ -1,10 +1,15 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Cpu, Pickaxe, Users, Shield, ArrowRight, Zap, Globe } from "lucide-react";
+import { Cpu, Pickaxe, Users, Shield, ArrowRight, Zap, Globe, Activity, DollarSign, BarChart3, Hash } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { NetworkBackground } from "@/components/NetworkBackground";
+import { HomeMiningWidget } from "@/components/HomeMiningWidget";
+import { StatCard } from "@/components/StatCard";
+import { useXmrMarketData } from "@/hooks/useXmrMarketData";
 
 const HomePage = () => {
   const { user } = useAuth();
+  const { data: market } = useXmrMarketData();
 
   return (
     <div className="min-h-screen">
@@ -30,54 +35,93 @@ const HomePage = () => {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(199_89%_48%/0.08)_0%,_transparent_70%)]" />
+      {/* ─── Hero ─── */}
+      <section className="relative pt-32 pb-24 px-4 overflow-hidden min-h-[85vh] flex items-center">
+        <NetworkBackground />
         <div className="container mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm text-primary font-mono mb-6 animate-slide-up">
             <Zap className="h-4 w-4" />
             Browser-Based Monero Mining
           </div>
           <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
-            Mine <span className="text-primary text-glow">XMR</span> with
-            <br />your browser
+            Mine <span className="text-primary text-glow">Monero</span> Directly
+            <br />From Your Browser
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
-            Start mining Monero instantly using your CPU. No software downloads, no special hardware.
-            Just open your browser and earn.
+            No hardware. No downloads. Start mining XMR using your CPU — just open your browser and earn.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to={user ? "/mining" : "/register"}>
               <Button variant="neon" size="lg" className="text-base px-8">
                 <Pickaxe className="h-5 w-5 mr-2" />
-                Start Mining Now
+                Start Mining
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
             </Link>
+            <Link to="/login">
+              <Button variant="neon-outline" size="lg" className="text-base px-8">
+                Login
+              </Button>
+            </Link>
+            {user && (
+              <Link to="/dashboard">
+                <Button variant="secondary" size="lg" className="text-base px-8">
+                  View Dashboard
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Stats Bar */}
+      {/* ─── Stats Bar ─── */}
       <section className="border-y border-border/50 glass">
-        <div className="container mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-          <div>
-            <p className="text-3xl font-bold font-mono text-primary">1,247</p>
-            <p className="text-sm text-muted-foreground mt-1">Active Miners</p>
-          </div>
-          <div>
-            <p className="text-3xl font-bold font-mono text-primary">84.2 KH/s</p>
-            <p className="text-sm text-muted-foreground mt-1">Network Hashrate</p>
-          </div>
-          <div>
-            <p className="text-3xl font-bold font-mono text-primary">12.45 XMR</p>
-            <p className="text-sm text-muted-foreground mt-1">Total Mined</p>
+        <div className="container mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          {[
+            { label: "Active Miners", value: "2,843" },
+            { label: "Platform Hashrate", value: "6.3 MH/s" },
+            { label: "Total XMR Mined", value: "47.82 XMR" },
+            { label: "Total Paid", value: "31.22 XMR" },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <p className="text-3xl font-bold font-mono text-primary">{value}</p>
+              <p className="text-sm text-muted-foreground mt-1">{label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── Live Dashboard Preview ─── */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-3">Live Platform Activity</h2>
+          <p className="text-muted-foreground text-center mb-10 max-w-lg mx-auto">Real-time data from the network and market.</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard icon={Users} label="Miners Online" value="2,843" trend="up" />
+            <StatCard icon={Activity} label="Avg Hashrate" value="2.2 KH/s" trend="up" />
+            <StatCard
+              icon={DollarSign}
+              label="XMR Price"
+              value={market?.price ? `$${market.price.toFixed(2)}` : "—"}
+              subtitle={market?.priceChange24h ? `${market.priceChange24h > 0 ? "+" : ""}${market.priceChange24h.toFixed(2)}% 24h` : undefined}
+              trend={market?.priceChange24h ? (market.priceChange24h > 0 ? "up" : "down") : "neutral"}
+            />
+            <StatCard icon={Hash} label="Network Difficulty" value="314.2 G" trend="neutral" />
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 px-4">
+      {/* ─── Start Mining Widget ─── */}
+      <section className="py-16 px-4 border-t border-border/50">
+        <div className="container mx-auto max-w-lg">
+          <h2 className="text-3xl font-bold text-center mb-3">Start Mining Now</h2>
+          <p className="text-muted-foreground text-center mb-8">No setup required — control your miner right here.</p>
+          <HomeMiningWidget />
+        </div>
+      </section>
+
+      {/* ─── Features ─── */}
+      <section className="py-20 px-4 border-t border-border/50">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Why Mine with Harimine?</h2>
           <div className="grid md:grid-cols-3 gap-6">
