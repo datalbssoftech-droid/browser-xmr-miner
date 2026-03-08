@@ -49,16 +49,32 @@ const HomePage = () => {
       </header>
 
       {/* ─── Hero ─── */}
-      <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-24 px-4 overflow-hidden min-h-[70vh] sm:min-h-[85vh] flex items-center">
+      <section className="relative pt-20 sm:pt-32 pb-12 sm:pb-24 px-4 overflow-hidden min-h-[auto] sm:min-h-[85vh] flex items-center">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(199_89%_48%/0.08)_0%,_transparent_65%)]" />
         <div className="container mx-auto relative z-10">
-          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-center">
-            <div className="text-center lg:text-left order-2 lg:order-1">
+          {/* Mobile: stacked layout with globe behind text */}
+          <div className="relative lg:grid lg:grid-cols-2 lg:gap-8 lg:items-center">
+            {/* Globe — behind text on mobile, side-by-side on desktop */}
+            <div className="flex justify-center lg:justify-end lg:order-2">
+              <div className="w-[220px] h-[220px] sm:w-[300px] sm:h-[300px] lg:w-[500px] lg:h-[500px] opacity-60 lg:opacity-100">
+                <InteractiveGlobe
+                  size={500}
+                  dotColor="hsla(199, 89%, 48%, ALPHA)"
+                  arcColor="hsla(199, 89%, 48%, 0.5)"
+                  markerColor="hsla(199, 89%, 60%, 1)"
+                  autoRotateSpeed={0.003}
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+
+            {/* Text content */}
+            <div className="text-center lg:text-left lg:order-1 -mt-8 sm:-mt-4 lg:mt-0 relative z-10">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs sm:text-sm text-primary font-mono mb-4 sm:mb-6 animate-slide-up">
                 <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
                 Browser-Based XMR Mining
               </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-black mb-4 sm:mb-6 leading-tight tracking-tight">
+              <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-black mb-4 sm:mb-6 leading-tight tracking-tight">
                 <span className="animate-typing">Mine</span>{" "}
                 <span className="text-glow-strong">Monero</span>
                 <br className="hidden sm:block" />
@@ -81,18 +97,6 @@ const HomePage = () => {
                     Login
                   </Button>
                 </Link>
-              </div>
-            </div>
-            <div className="flex justify-center lg:justify-end order-1 lg:order-2">
-              <div className="w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] lg:w-[500px] lg:h-[500px]">
-                <InteractiveGlobe
-                  size={500}
-                  dotColor="hsla(199, 89%, 48%, ALPHA)"
-                  arcColor="hsla(199, 89%, 48%, 0.5)"
-                  markerColor="hsla(199, 89%, 60%, 1)"
-                  autoRotateSpeed={0.003}
-                  className="w-full h-full"
-                />
               </div>
             </div>
           </div>
