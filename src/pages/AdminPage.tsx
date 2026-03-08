@@ -286,6 +286,32 @@ const AdminPage = () => {
                     />
                   </div>
                   <div>
+                    <Label>Custom Domain</Label>
+                    <Input
+                      value={config.site_domain || ""}
+                      onChange={(e) => setConfig({ ...config, site_domain: e.target.value })}
+                      placeholder="shrimine.com"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Used in referral links</p>
+                  </div>
+                </div>
+                <Button variant="neon" className="mt-6" onClick={saveConfig} disabled={configSaving}>
+                  {configSaving ? "Saving..." : "Save Reward Settings"}
+                </Button>
+              </div>
+
+              {/* Referral Configuration */}
+              <div className="stat-card">
+                <div className="flex items-center gap-2 mb-4">
+                  <Users className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Referral Settings</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Configure referral program commission rates and bonuses.
+                </p>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div>
                     <Label>Referral Commission (%)</Label>
                     <Input
                       value={config.referral_percentage || ""}
@@ -294,10 +320,32 @@ const AdminPage = () => {
                       type="number"
                       className="mt-1 bg-secondary border-border font-mono text-sm"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">% of referred user's earnings</p>
+                  </div>
+                  <div>
+                    <Label>Signup Bonus (XMR)</Label>
+                    <Input
+                      value={config.referral_signup_bonus || ""}
+                      onChange={(e) => setConfig({ ...config, referral_signup_bonus: e.target.value })}
+                      placeholder="0.0001"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Bonus for referrer on signup</p>
+                  </div>
+                  <div>
+                    <Label>Mining Bonus (%)</Label>
+                    <Input
+                      value={config.referral_mining_bonus || ""}
+                      onChange={(e) => setConfig({ ...config, referral_mining_bonus: e.target.value })}
+                      placeholder="2"
+                      type="number"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Extra % for referred user</p>
                   </div>
                 </div>
                 <Button variant="neon" className="mt-6" onClick={saveConfig} disabled={configSaving}>
-                  {configSaving ? "Saving..." : "Save Reward Settings"}
+                  {configSaving ? "Saving..." : "Save Referral Settings"}
                 </Button>
               </div>
 

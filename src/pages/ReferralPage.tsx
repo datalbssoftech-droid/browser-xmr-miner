@@ -61,7 +61,7 @@ const ReferralPage = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid sm:grid-cols-2 gap-4 mb-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="stat-card">
             <Users className="h-5 w-5 text-primary mb-2" />
             <p className="text-2xl font-bold font-mono">{referrals.length}</p>
@@ -71,6 +71,16 @@ const ReferralPage = () => {
             <Coins className="h-5 w-5 text-primary mb-2" />
             <p className="text-2xl font-bold font-mono">{totalEarnings.toFixed(6)} XMR</p>
             <p className="text-sm text-muted-foreground">Referral Earnings</p>
+          </div>
+          <div className="stat-card">
+            <Percent className="h-5 w-5 text-primary mb-2" />
+            <p className="text-2xl font-bold font-mono">{commissionRate}%</p>
+            <p className="text-sm text-muted-foreground">Commission Rate</p>
+          </div>
+          <div className="stat-card">
+            <Gift className="h-5 w-5 text-primary mb-2" />
+            <p className="text-2xl font-bold font-mono">{signupBonus} XMR</p>
+            <p className="text-sm text-muted-foreground">Signup Bonus</p>
           </div>
         </div>
 
