@@ -69,7 +69,7 @@ const HomePage = () => {
             </div>
 
             {/* Text content */}
-            <div className="text-center lg:text-left lg:order-1 -mt-8 sm:-mt-4 lg:mt-0 relative z-10">
+            <div className="text-center lg:text-left lg:order-1 -mt-12 sm:-mt-4 lg:mt-0 relative z-10">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs sm:text-sm text-primary font-mono mb-4 sm:mb-6 animate-slide-up">
                 <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
                 Browser-Based XMR Mining
