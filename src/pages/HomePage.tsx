@@ -7,6 +7,13 @@ import { HomeMiningWidget } from "@/components/HomeMiningWidget";
 import { StatCard } from "@/components/StatCard";
 import { XmrLiveTicker } from "@/components/XmrLiveTicker";
 import { XmrNewsFeed } from "@/components/XmrNewsFeed";
+import { HowItWorks } from "@/components/HowItWorks";
+import { MiningCalculator } from "@/components/MiningCalculator";
+import { MiningPools } from "@/components/MiningPools";
+import { NetworkStats } from "@/components/NetworkStats";
+import { EducationSection } from "@/components/EducationSection";
+import { SecuritySection } from "@/components/SecuritySection";
+import { ToolsSection } from "@/components/ToolsSection";
 import { useXmrMarketData } from "@/hooks/useXmrMarketData";
 import { usePlatformStats, formatHashrate } from "@/hooks/usePlatformStats";
 
@@ -43,11 +50,9 @@ const HomePage = () => {
 
       {/* ─── Hero ─── */}
       <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-24 px-4 overflow-hidden min-h-[70vh] sm:min-h-[85vh] flex items-center">
-        {/* Ambient glow */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(199_89%_48%/0.08)_0%,_transparent_65%)]" />
         <div className="container mx-auto relative z-10">
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-center">
-            {/* Left content */}
             <div className="text-center lg:text-left order-2 lg:order-1">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs sm:text-sm text-primary font-mono mb-4 sm:mb-6 animate-slide-up">
                 <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -76,17 +81,8 @@ const HomePage = () => {
                     Login
                   </Button>
                 </Link>
-                {user && (
-                  <Link to="/dashboard">
-                    <Button variant="secondary" size="lg" className="text-sm sm:text-base px-6 sm:px-8 w-full sm:w-auto font-display">
-                      Dashboard
-                    </Button>
-                  </Link>
-                )}
               </div>
             </div>
-
-            {/* Right — Globe */}
             <div className="flex justify-center lg:justify-end order-1 lg:order-2">
               <div className="w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] lg:w-[500px] lg:h-[500px]">
                 <InteractiveGlobe
@@ -120,8 +116,26 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ─── Live XMR Rate & News ─── */}
-      <section className="py-12 sm:py-20 px-4">
+      {/* ─── Start Mining Widget ─── */}
+      <section className="py-12 sm:py-16 px-4 border-t border-border/50">
+        <div className="container mx-auto max-w-lg">
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-2 sm:mb-3">Start Mining Now</h2>
+          <p className="text-sm sm:text-base text-muted-foreground text-center mb-6 sm:mb-8">No setup required — control your miner right here.</p>
+          <HomeMiningWidget />
+        </div>
+      </section>
+
+      {/* ─── How It Works ─── */}
+      <HowItWorks />
+
+      {/* ─── Mining Calculator ─── */}
+      <MiningCalculator />
+
+      {/* ─── Mining Pools ─── */}
+      <MiningPools />
+
+      {/* ─── Live XMR Market ─── */}
+      <section className="py-12 sm:py-20 px-4 border-t border-border/50">
         <div className="container mx-auto">
           <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-2 sm:mb-3">Live XMR Market</h2>
           <p className="text-sm sm:text-base text-muted-foreground text-center mb-8 sm:mb-10 max-w-lg mx-auto">
@@ -134,7 +148,10 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ─── Live Dashboard Preview ─── */}
+      {/* ─── Network Stats ─── */}
+      <NetworkStats />
+
+      {/* ─── Platform Activity ─── */}
       <section className="py-12 sm:py-16 px-4 border-t border-border/50">
         <div className="container mx-auto">
           <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-2 sm:mb-3">Platform Activity</h2>
@@ -149,19 +166,19 @@ const HomePage = () => {
               subtitle={market?.priceChange24h ? `${market.priceChange24h > 0 ? "+" : ""}${market.priceChange24h.toFixed(2)}% 24h` : undefined}
               trend={market?.priceChange24h ? (market.priceChange24h > 0 ? "up" : "down") : "neutral"}
             />
-            <StatCard icon={Hash} label="Network Difficulty" value="314.2 G" trend="neutral" />
+            <StatCard icon={Hash} label="Network Difficulty" value={data?.network?.difficulty ? `${(data.network.difficulty / 1e9).toFixed(1)} G` : "—"} trend="neutral" />
           </div>
         </div>
       </section>
 
-      {/* ─── Start Mining Widget ─── */}
-      <section className="py-12 sm:py-16 px-4 border-t border-border/50">
-        <div className="container mx-auto max-w-lg">
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-2 sm:mb-3">Start Mining Now</h2>
-          <p className="text-sm sm:text-base text-muted-foreground text-center mb-6 sm:mb-8">No setup required — control your miner right here.</p>
-          <HomeMiningWidget />
-        </div>
-      </section>
+      {/* ─── Tools ─── */}
+      <ToolsSection />
+
+      {/* ─── Education ─── */}
+      <EducationSection />
+
+      {/* ─── Security ─── */}
+      <SecuritySection />
 
       {/* ─── Features ─── */}
       <section className="py-12 sm:py-20 px-4 border-t border-border/50">
