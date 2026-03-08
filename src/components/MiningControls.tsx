@@ -1,26 +1,29 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Cpu, Play, Square, Activity } from "lucide-react";
+import { Cpu, Play, Square, Activity, Wifi, WifiOff, CheckCircle, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWebSocketMiner } from "@/hooks/useWebSocketMiner";
 import { toast } from "sonner";
+
+// Set this to your mining proxy WebSocket URL when deployed
+const PROXY_URL = import.meta.env.VITE_MINING_PROXY_URL || "wss://proxy.harimine.com";
 
 export const MiningControls = () => {
   const { user } = useAuth();
-  const [isMining, setIsMining] = useState(false);
   const [cpuUsage, setCpuUsage] = useState(50);
   const [threads, setThreads] = useState(Math.max(1, Math.floor(navigator.hardwareConcurrency / 2) || 2));
-  const [hashrate, setHashrate] = useState(0);
-  const [totalHashes, setTotalHashes] = useState(0);
   const [consented, setConsented] = useState(false);
   const maxThreads = navigator.hardwareConcurrency || 4;
 
+  const { stats, startMining: wsStart, stopMining: wsStop } = useWebSocketMiner({
+    proxyUrl: PROXY_URL,
+    threads,
+    cpuUsage,
+  });
+
   const startMining = async () => {
-    if (!consented) {
-      setConsented(true);
-      return;
-    }
     if (!user) return;
 
     // Create mining session in DB
@@ -31,28 +34,22 @@ export const MiningControls = () => {
       is_active: true,
     });
 
-    setIsMining(true);
+    wsStart();
     toast.success("Mining started!");
-
-    // Simulate hashrate (real mining would use WebAssembly worker)
-    const interval = setInterval(() => {
-      const h = (cpuUsage / 100) * threads * (15 + Math.random() * 10);
-      setHashrate(Math.round(h));
-      setTotalHashes((prev) => prev + Math.round(h));
-    }, 1000);
-
-    (window as any).__miningInterval = interval;
   };
 
   const stopMining = async () => {
-    clearInterval((window as any).__miningInterval);
-    setIsMining(false);
-    setHashrate(0);
+    wsStop();
 
     if (user) {
       await supabase
         .from("mining_sessions")
-        .update({ is_active: false, ended_at: new Date().toISOString(), total_hashes: totalHashes, hashrate: 0 })
+        .update({
+          is_active: false,
+          ended_at: new Date().toISOString(),
+          total_hashes: stats.totalHashes,
+          hashrate: 0,
+        })
         .eq("user_id", user.id)
         .eq("is_active", true);
     }
@@ -70,7 +67,7 @@ export const MiningControls = () => {
           You can adjust CPU usage and stop mining at any time.
         </p>
         <div className="flex gap-3 justify-center">
-          <Button variant="neon" onClick={() => { setConsented(true); }}>
+          <Button variant="neon" onClick={() => setConsented(true)}>
             I Agree — Start Mining
           </Button>
         </div>
@@ -80,23 +77,51 @@ export const MiningControls = () => {
 
   return (
     <div className="space-y-6">
-      {/* Status */}
       <div className="stat-card">
+        {/* Status Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className={`h-3 w-3 rounded-full ${isMining ? "bg-success animate-pulse-neon" : "bg-muted-foreground"}`} />
-            <span className="font-medium">{isMining ? "Mining Active" : "Mining Stopped"}</span>
+            <div className={`h-3 w-3 rounded-full ${stats.isMining ? "bg-success animate-pulse-neon" : "bg-muted-foreground"}`} />
+            <span className="font-medium">{stats.isMining ? "Mining Active" : "Mining Stopped"}</span>
           </div>
-          <Activity className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-2">
+            {stats.isConnected ? (
+              <Wifi className="h-4 w-4 text-success" />
+            ) : (
+              <WifiOff className="h-4 w-4 text-muted-foreground" />
+            )}
+            <Activity className="h-5 w-5 text-primary" />
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-6">
+
+        {/* Connection Status */}
+        <div className="mb-4 px-3 py-2 rounded-lg bg-secondary text-xs font-mono text-muted-foreground">
+          Status: {stats.status} · Proxy: {PROXY_URL.replace("wss://", "")}
+        </div>
+
+        {/* Live Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           <div>
             <p className="text-xs text-muted-foreground">Hashrate</p>
-            <p className="text-2xl font-bold font-mono">{hashrate} <span className="text-sm text-muted-foreground">H/s</span></p>
+            <p className="text-2xl font-bold font-mono">
+              {stats.hashrate} <span className="text-sm text-muted-foreground">H/s</span>
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total Hashes</p>
-            <p className="text-2xl font-bold font-mono">{totalHashes.toLocaleString()}</p>
+            <p className="text-2xl font-bold font-mono">{stats.totalHashes.toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <CheckCircle className="h-3 w-3 text-success" /> Accepted
+            </p>
+            <p className="text-2xl font-bold font-mono">{stats.acceptedShares}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <XCircle className="h-3 w-3 text-destructive" /> Rejected
+            </p>
+            <p className="text-2xl font-bold font-mono">{stats.rejectedShares}</p>
           </div>
         </div>
 
@@ -112,7 +137,7 @@ export const MiningControls = () => {
             min={10}
             max={100}
             step={10}
-            disabled={isMining}
+            disabled={stats.isMining}
           />
         </div>
 
@@ -128,13 +153,13 @@ export const MiningControls = () => {
             min={1}
             max={maxThreads}
             step={1}
-            disabled={isMining}
+            disabled={stats.isMining}
           />
         </div>
 
         {/* Buttons */}
         <div className="flex gap-3">
-          {!isMining ? (
+          {!stats.isMining ? (
             <Button variant="neon" className="flex-1" onClick={startMining}>
               <Play className="h-4 w-4 mr-2" />
               Start Mining
