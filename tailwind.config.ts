@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
+        sans: ["Rajdhani", "system-ui", "sans-serif"],
+        mono: ["Share Tech Mono", "monospace"],
+        display: ["Orbitron", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
