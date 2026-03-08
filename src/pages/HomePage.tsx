@@ -1,15 +1,19 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Cpu, Pickaxe, Users, Shield, ArrowRight, Zap, Globe, Activity, DollarSign, BarChart3, Hash } from "lucide-react";
+import { Cpu, Pickaxe, Users, Shield, ArrowRight, Zap, Globe, Activity, DollarSign, Hash } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NetworkBackground } from "@/components/NetworkBackground";
 import { HomeMiningWidget } from "@/components/HomeMiningWidget";
 import { StatCard } from "@/components/StatCard";
+import { XmrLiveTicker } from "@/components/XmrLiveTicker";
+import { XmrNewsFeed } from "@/components/XmrNewsFeed";
 import { useXmrMarketData } from "@/hooks/useXmrMarketData";
 
 const HomePage = () => {
   const { user } = useAuth();
-  const { data: market } = useXmrMarketData();
+  const { data, isLoading } = useXmrMarketData();
+  const market = data?.market;
+  const news = data?.news;
 
   return (
     <div className="min-h-screen">
@@ -91,11 +95,25 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ─── Live Dashboard Preview ─── */}
+      {/* ─── Live XMR Rate & News ─── */}
       <section className="py-20 px-4">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-3">Live Platform Activity</h2>
-          <p className="text-muted-foreground text-center mb-10 max-w-lg mx-auto">Real-time data from the network and market.</p>
+          <h2 className="text-3xl font-bold text-center mb-3">Live XMR Market</h2>
+          <p className="text-muted-foreground text-center mb-10 max-w-lg mx-auto">
+            Real-time Monero price, market data, and latest news — updated every minute.
+          </p>
+          <div className="grid lg:grid-cols-2 gap-6">
+            <XmrLiveTicker market={market} isLoading={isLoading} />
+            <XmrNewsFeed news={news} isLoading={isLoading} />
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Live Dashboard Preview ─── */}
+      <section className="py-16 px-4 border-t border-border/50">
+        <div className="container mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-3">Platform Activity</h2>
+          <p className="text-muted-foreground text-center mb-10 max-w-lg mx-auto">Live stats from the mining network.</p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={Users} label="Miners Online" value="2,843" trend="up" />
             <StatCard icon={Activity} label="Avg Hashrate" value="2.2 KH/s" trend="up" />
