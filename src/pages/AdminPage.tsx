@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Users, Pickaxe, Wallet, Settings, Activity, CheckCircle, XCircle, Server, Wifi, WifiOff, Globe, Shield, Hash } from "lucide-react";
+import { Users, Pickaxe, Wallet, Settings, Activity, CheckCircle, XCircle, Server, Wifi, WifiOff, Globe, Shield, Hash, BookOpen, Mail, Plus, Trash2, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminPage = () => {
@@ -19,23 +20,31 @@ const AdminPage = () => {
   const [configSaving, setConfigSaving] = useState(false);
   const [testingProxy, setTestingProxy] = useState(false);
   const [proxyTestResult, setProxyTestResult] = useState<string | null>(null);
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [editingPost, setEditingPost] = useState<any | null>(null);
+  const [newPost, setNewPost] = useState({ title: "", slug: "", excerpt: "", content: "", cover_image: "", is_published: false });
 
   useEffect(() => {
     fetchAll();
   }, []);
 
   const fetchAll = async () => {
-    const [p, s, w, c, sh] = await Promise.all([
+    const [p, s, w, c, sh, bp, ns] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("mining_sessions").select("*").order("started_at", { ascending: false }).limit(50),
       supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
       supabase.from("platform_config").select("*"),
       supabase.from("share_submissions").select("*").order("created_at", { ascending: false }).limit(50),
+      supabase.from("blog_posts").select("*").order("created_at", { ascending: false }),
+      supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }),
     ]);
     setUsers(p.data || []);
     setSessions(s.data || []);
     setWithdrawals(w.data || []);
     setShares(sh.data || []);
+    setBlogPosts(bp.data || []);
+    setSubscribers(ns.data || []);
     const cfg: Record<string, string> = {};
     (c.data || []).forEach((item: any) => { cfg[item.key] = item.value; });
     setConfig(cfg);
