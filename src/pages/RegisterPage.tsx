@@ -40,7 +40,7 @@ const RegisterPage = () => {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <Cpu className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold font-mono text-glow">HARIMINE</span>
+            <span className="text-2xl font-bold font-mono text-glow">SHRIMINE</span>
           </Link>
           <h1 className="text-2xl font-bold">Create Account</h1>
           <p className="text-muted-foreground text-sm mt-1">Start mining Monero in your browser</p>

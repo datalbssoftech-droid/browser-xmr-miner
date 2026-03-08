@@ -8,7 +8,7 @@ const MoneroMiningArticle = () => (
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <Cpu className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold font-display text-glow">HARIMINE</span>
+          <span className="text-lg font-bold font-display text-glow">SHRIMINE</span>
         </Link>
         <Link to="/"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button></Link>
       </div>
@@ -80,8 +80,8 @@ const MoneroMiningArticle = () => (
             <div className="space-y-4">
               {[
                 { step: "1", title: "Get a Monero Wallet", desc: "Download the official Monero GUI/CLI wallet or use a lightweight wallet like Cake Wallet. Your wallet provides a unique address where mining rewards are sent." },
-                { step: "2", title: "Choose Your Mining Method", desc: "You can mine solo (find blocks yourself), join a mining pool (combine hashrate with others), or use browser-based mining like Harimine for the easiest setup." },
-                { step: "3", title: "Configure and Start", desc: "Set your wallet address, choose the number of CPU threads to use, and start mining. With Harimine, this is as simple as clicking a button." },
+                { step: "2", title: "Choose Your Mining Method", desc: "You can mine solo (find blocks yourself), join a mining pool (combine hashrate with others), or use browser-based mining like Shrimine for the easiest setup." },
+                { step: "3", title: "Configure and Start", desc: "Set your wallet address, choose the number of CPU threads to use, and start mining. With Shrimine, this is as simple as clicking a button." },
                 { step: "4", title: "Monitor and Earn", desc: "Watch your hashrate and earnings in real-time. Pool payouts are typically sent automatically once you reach the minimum payout threshold." },
               ].map((item) => (
                 <div key={item.step} className="flex gap-4">
