@@ -12,7 +12,10 @@ export const MiningControls = () => {
   const { user } = useAuth();
   const [cpuUsage, setCpuUsage] = useState(50);
   const [threads, setThreads] = useState(Math.max(1, Math.floor(navigator.hardwareConcurrency / 2) || 2));
-  const [consented, setConsented] = useState(false);
+  const [consented, setConsented] = useState(() => {
+    return localStorage.getItem("mining_consent") === "true";
+  });
+  const [graphData, setGraphData] = useState<HashrateDataPoint[]>([]);
   const [graphData, setGraphData] = useState<HashrateDataPoint[]>([]);
   const maxThreads = navigator.hardwareConcurrency || 4;
   const prevSharesRef = useRef(0);
