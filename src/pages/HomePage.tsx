@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Cpu, Pickaxe, Users, Shield, ArrowRight, Zap, Globe, Activity, DollarSign, Hash, Wrench, Calculator, ArrowLeftRight, Server, TrendingUp, Monitor } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Cpu, Pickaxe, Users, Shield, ArrowRight, Zap, Globe, Activity, DollarSign, Hash, Wrench, Calculator, ArrowLeftRight, Server, TrendingUp, Monitor, Mail, BookOpen, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { InteractiveGlobe } from "@/components/ui/interactive-globe";
 import { HomeMiningWidget } from "@/components/HomeMiningWidget";
@@ -17,7 +18,9 @@ import { ToolsSection } from "@/components/ToolsSection";
 import { AnimatedSection } from "@/components/AnimatedSection";
 import { useXmrMarketData } from "@/hooks/useXmrMarketData";
 import { usePlatformStats, formatHashrate } from "@/hooks/usePlatformStats";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const toolsMenu = [
   { icon: Calculator, label: "Calculator", path: "/tools/calculator" },
