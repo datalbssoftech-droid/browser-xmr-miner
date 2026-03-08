@@ -432,15 +432,78 @@ const HomePage = () => {
       </AnimatedSection>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 py-4 sm:py-6 px-4">
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between text-xs sm:text-sm text-muted-foreground gap-2">
-          <div className="flex items-center gap-2">
-            <Cpu className="h-4 w-4 text-primary" />
-            <span className="font-display">SHRIMINE</span>
+      <footer className="border-t border-border/50 py-8 sm:py-12 px-4">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            {/* Brand */}
+            <div className="col-span-2 md:col-span-1">
+              <Link to="/" className="flex items-center gap-2 mb-4">
+                <Cpu className="h-6 w-6 text-primary" />
+                <span className="font-display font-bold text-lg">SHRIMINE</span>
+              </Link>
+              <p className="text-sm text-muted-foreground">
+                Browser-based Monero mining for everyone. No hardware required.
+              </p>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h4 className="font-bold mb-4">Quick Links</h4>
+              <nav className="space-y-2">
+                <Link to="/" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
+                <Link to="/about" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
+                <Link to="/faq" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
+                <Link to="/contact" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
+              </nav>
+            </div>
+
+            {/* Tools */}
+            <div>
+              <h4 className="font-bold mb-4">Tools</h4>
+              <nav className="space-y-2">
+                <Link to="/tools/calculator" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Calculator</Link>
+                <Link to="/tools/converter" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Converter</Link>
+                <Link to="/tools/benchmark" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Benchmark</Link>
+                <Link to="/tools/network" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Network</Link>
+              </nav>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="font-bold mb-4">Legal</h4>
+              <nav className="space-y-2">
+                <Link to="/privacy" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
+                <Link to="/terms" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
+              </nav>
+            </div>
           </div>
-          <p>© 2026 Shrimine. All rights reserved.</p>
+
+          <div className="border-t border-border/50 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs sm:text-sm text-muted-foreground">
+            <p>© 2026 Shrimine. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+              <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+              <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+            </div>
+          </div>
         </div>
       </footer>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden glass border-t border-border/50">
+        <div className="flex items-center justify-around h-14">
+          {bottomNavLinks.map(({ label, path, icon: Icon }) => (
+            <Link
+              key={path}
+              to={path}
+              className="flex flex-col items-center justify-center flex-1 h-full text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Icon className="h-5 w-5 mb-0.5" />
+              <span className="text-xs">{label}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 };
