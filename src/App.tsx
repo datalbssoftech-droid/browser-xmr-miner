@@ -21,6 +21,9 @@ import BenchmarkPage from "./pages/tools/BenchmarkPage";
 import NetworkExplorerPage from "./pages/tools/NetworkExplorerPage";
 import PoolExplorerPage from "./pages/tools/PoolExplorerPage";
 import PriceTrackerPage from "./pages/tools/PriceTrackerPage";
+import MoneroMiningArticle from "./pages/learn/MoneroMiningArticle";
+import RandomXArticle from "./pages/learn/RandomXArticle";
+import BrowserVsGpuArticle from "./pages/learn/BrowserVsGpuArticle";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +51,10 @@ const App = () => (
             <Route path="/tools/network" element={<NetworkExplorerPage />} />
             <Route path="/tools/pools" element={<PoolExplorerPage />} />
             <Route path="/tools/price" element={<PriceTrackerPage />} />
+            {/* Learn pages */}
+            <Route path="/learn/monero-mining" element={<MoneroMiningArticle />} />
+            <Route path="/learn/randomx" element={<RandomXArticle />} />
+            <Route path="/learn/browser-vs-gpu" element={<BrowserVsGpuArticle />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
