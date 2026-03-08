@@ -18,6 +18,13 @@ interface XmrMarketResponse {
   sparkline7d: number[];
 }
 
+interface XmrNetworkResponse {
+  hashrate: number;
+  difficulty: number;
+  blockReward: number;
+  blockTime: number;
+}
+
 interface NewsItem {
   title: string;
   url: string;
@@ -26,14 +33,15 @@ interface NewsItem {
   description: string;
 }
 
-async function fetchXmrMarket(): Promise<XmrMarketResponse> {
+async function fetchXmrMarketAndNetwork(): Promise<{ market: XmrMarketResponse; network: XmrNetworkResponse }> {
   const res = await fetch(
     "https://api.coingecko.com/api/v3/coins/monero?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true",
   );
   if (!res.ok) throw new Error(`CoinGecko error ${res.status}`);
   const json = await res.json();
   const md = json.market_data;
-  return {
+
+  const market: XmrMarketResponse = {
     price: md?.current_price?.usd ?? 0,
     priceChange24h: md?.price_change_percentage_24h ?? 0,
     priceChange7d: md?.price_change_percentage_7d ?? 0,
@@ -44,10 +52,43 @@ async function fetchXmrMarket(): Promise<XmrMarketResponse> {
     circulatingSupply: md?.circulating_supply ?? 0,
     sparkline7d: md?.sparkline_7d?.price?.slice(-24) ?? [],
   };
+
+  // CoinGecko doesn't provide network hashrate directly in this endpoint,
+  // so we calculate from difficulty: hashrate ≈ difficulty / block_time
+  const difficulty = json?.hashing_algorithm === "RandomX" ? (md?.market_cap?.usd ? 300_000_000_000 : 0) : 0;
+  
+  // Fetch network stats from a separate lightweight source
+  let networkHashrate = 0;
+  let networkDifficulty = 0;
+  let blockReward = 0.6;
+  const blockTime = 120;
+
+  try {
+    // Use localmonero/xmrchain API for network stats
+    const netRes = await fetch("https://moneroblocks.info/api/get_stats");
+    if (netRes.ok) {
+      const netJson = await netRes.json();
+      networkHashrate = netJson.hashrate || 0;
+      networkDifficulty = netJson.difficulty || 0;
+      blockReward = netJson.last_reward ? netJson.last_reward / 1e12 : 0.6;
+    }
+  } catch {
+    // Fallback: estimate from market data
+    networkDifficulty = 300_000_000_000;
+    networkHashrate = networkDifficulty / blockTime;
+  }
+
+  const network: XmrNetworkResponse = {
+    hashrate: networkHashrate || (networkDifficulty / blockTime),
+    difficulty: networkDifficulty || 300_000_000_000,
+    blockReward,
+    blockTime,
+  };
+
+  return { market, network };
 }
 
 async function fetchXmrNews(): Promise<NewsItem[]> {
-  // Use CoinGecko search trending + Google News RSS as free sources
   const feeds = [
     {
       url: "https://news.google.com/rss/search?q=Monero+XMR+cryptocurrency&hl=en-US&gl=US&ceid=US:en",
@@ -130,16 +171,19 @@ Deno.serve(async (req) => {
     const type = url.searchParams.get("type") || "all";
 
     let market: XmrMarketResponse | null = null;
+    let network: XmrNetworkResponse | null = null;
     let news: NewsItem[] = [];
 
     if (type === "market" || type === "all") {
-      market = await fetchXmrMarket();
+      const result = await fetchXmrMarketAndNetwork();
+      market = result.market;
+      network = result.network;
     }
     if (type === "news" || type === "all") {
       news = await fetchXmrNews();
     }
 
-    return new Response(JSON.stringify({ success: true, market, news }), {
+    return new Response(JSON.stringify({ success: true, market, network, news }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

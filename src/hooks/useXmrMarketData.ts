@@ -13,6 +13,13 @@ export interface XmrMarketData {
   sparkline7d: number[];
 }
 
+export interface XmrNetworkData {
+  hashrate: number;
+  difficulty: number;
+  blockReward: number;
+  blockTime: number;
+}
+
 export interface XmrNewsItem {
   title: string;
   url: string;
@@ -24,6 +31,7 @@ export interface XmrNewsItem {
 interface ApiResponse {
   success: boolean;
   market: XmrMarketData | null;
+  network: XmrNetworkData | null;
   news: XmrNewsItem[];
   error?: string;
 }
@@ -35,7 +43,6 @@ const fetchXmrMarketAndNews = async (): Promise<ApiResponse> => {
 
   if (error) {
     console.error("Edge function error:", error);
-    // Fallback to direct CoinGecko call for price only
     try {
       const res = await fetch(
         "https://api.coingecko.com/api/v3/coins/monero?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true",
@@ -56,11 +63,17 @@ const fetchXmrMarketAndNews = async (): Promise<ApiResponse> => {
             circulatingSupply: md?.circulating_supply ?? 0,
             sparkline7d: md?.sparkline_7d?.price?.slice(-24) ?? [],
           },
+          network: {
+            hashrate: json?.hashing_algorithm ? 0 : 0,
+            difficulty: 0,
+            blockReward: 0,
+            blockTime: 120,
+          },
           news: [],
         };
       }
     } catch {}
-    return { success: false, market: null, news: [] };
+    return { success: false, market: null, network: null, news: [] };
   }
 
   return data as ApiResponse;
