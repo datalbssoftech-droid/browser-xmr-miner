@@ -36,7 +36,7 @@ export const NetworkStats = () => {
   ];
 
   return (
-    <section className="py-12 sm:py-20 px-4 border-t border-border/50">
+    <section className="py-8 sm:py-12 px-4 border-t border-border/50">
       <div className="container mx-auto">
         <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-2">
           Monero Network
