@@ -55,8 +55,8 @@ const HomePage = () => {
           {/* Mobile: stacked layout with globe behind text */}
           <div className="relative lg:grid lg:grid-cols-2 lg:gap-8 lg:items-center">
             {/* Globe — behind text on mobile, side-by-side on desktop */}
-            <div className="flex justify-center lg:justify-end lg:order-2">
-              <div className="w-[220px] h-[220px] sm:w-[300px] sm:h-[300px] lg:w-[500px] lg:h-[500px] opacity-60 lg:opacity-100">
+            <div className="flex justify-center lg:justify-end lg:order-2 mx-auto lg:mx-0">
+              <div className="w-[200px] h-[200px] sm:w-[300px] sm:h-[300px] lg:w-[500px] lg:h-[500px] opacity-70 lg:opacity-100">
                 <InteractiveGlobe
                   size={500}
                   dotColor="hsla(199, 89%, 48%, ALPHA)"
