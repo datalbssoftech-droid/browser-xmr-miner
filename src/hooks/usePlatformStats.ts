@@ -1,27 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-interface PlatformStats {
+export interface PlatformStats {
   activeMiners: number;
   platformHashrate: number;
   totalMined: number;
   totalPaid: number;
 }
 
+function formatHashrate(h: number): string {
+  if (h >= 1e6) return `${(h / 1e6).toFixed(1)} MH/s`;
+  if (h >= 1e3) return `${(h / 1e3).toFixed(1)} KH/s`;
+  return `${h.toFixed(0)} H/s`;
+}
+
 async function fetchPlatformStats(): Promise<PlatformStats> {
-  const [minersRes, earningsRes, withdrawalsRes, hashrateRes] = await Promise.all([
-    supabase.from("mining_sessions").select("id", { count: "exact", head: true }).eq("is_active", true),
-    supabase.from("earnings").select("amount"),
-    supabase.from("withdrawals").select("amount").eq("status", "completed"),
-    supabase.from("mining_sessions").select("hashrate").eq("is_active", true),
-  ]);
-
-  const activeMiners = minersRes.count ?? 0;
-  const totalMined = (earningsRes.data ?? []).reduce((s, r) => s + (r.amount ?? 0), 0);
-  const totalPaid = (withdrawalsRes.data ?? []).reduce((s, r) => s + (r.amount ?? 0), 0);
-  const platformHashrate = (hashrateRes.data ?? []).reduce((s, r) => s + (r.hashrate ?? 0), 0);
-
-  return { activeMiners, platformHashrate, totalMined, totalPaid };
+  const { data, error } = await supabase.rpc("get_platform_stats" as any);
+  if (error) throw error;
+  const d = data as any;
+  return {
+    activeMiners: d?.active_miners ?? 0,
+    platformHashrate: d?.platform_hashrate ?? 0,
+    totalMined: d?.total_mined ?? 0,
+    totalPaid: d?.total_paid ?? 0,
+  };
 }
 
 export const usePlatformStats = () =>
@@ -31,3 +33,5 @@ export const usePlatformStats = () =>
     refetchInterval: 15_000,
     staleTime: 10_000,
   });
+
+export { formatHashrate };

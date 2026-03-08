@@ -101,10 +101,10 @@ const HomePage = () => {
       <section className="border-y border-border/50 glass">
         <div className="container mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
-            { label: "Active Miners", value: "2,843" },
-            { label: "Platform Hashrate", value: "6.3 MH/s" },
-            { label: "Total XMR Mined", value: "47.82 XMR" },
-            { label: "Total Paid", value: "31.22 XMR" },
+            { label: "Active Miners", value: stats ? stats.activeMiners.toLocaleString() : "—" },
+            { label: "Platform Hashrate", value: stats ? formatHashrate(stats.platformHashrate) : "—" },
+            { label: "Total XMR Mined", value: stats ? `${stats.totalMined.toFixed(4)} XMR` : "—" },
+            { label: "Total Paid", value: stats ? `${stats.totalPaid.toFixed(4)} XMR` : "—" },
           ].map(({ label, value }) => (
             <div key={label}>
               <p className="text-3xl font-bold font-mono text-primary">{value}</p>
