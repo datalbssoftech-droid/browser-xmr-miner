@@ -234,7 +234,7 @@ const HomePage = () => {
       <AnimatedSection>
         <section className="py-8 sm:py-12 px-4 border-t border-border/50">
           <div className="container mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-6 sm:mb-8">Why Harimine?</h2>
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-6 sm:mb-8">Why Shrimine?</h2>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
               {[
                 { icon: Globe, title: "Browser Mining", desc: "Mine directly from your browser using WebAssembly. No downloads or special hardware." },
