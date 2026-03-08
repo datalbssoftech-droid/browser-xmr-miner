@@ -69,7 +69,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass border-b border-border/50 px-4 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <Cpu className="h-6 w-6 text-primary" />
-          <span className="text-lg font-bold text-glow font-display">HARIMINE</span>
+          <span className="text-lg font-bold text-glow font-display">SHRIMINE</span>
         </Link>
         <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={signOut}>
           <LogOut className="h-4 w-4" />

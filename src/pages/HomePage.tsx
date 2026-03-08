@@ -261,7 +261,7 @@ const HomePage = () => {
             <Cpu className="h-4 w-4 text-primary" />
             <span className="font-display">SHRIMINE</span>
           </div>
-          <p>© 2026 Harimine. All rights reserved.</p>
+          <p>© 2026 Shrimine. All rights reserved.</p>
         </div>
       </footer>
     </div>
