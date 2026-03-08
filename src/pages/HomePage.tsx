@@ -41,39 +41,56 @@ const HomePage = () => {
 
       {/* ─── Hero ─── */}
       <section className="relative pt-32 pb-24 px-4 overflow-hidden min-h-[85vh] flex items-center">
-        <NetworkBackground />
-        <div className="container mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm text-primary font-mono mb-6 animate-slide-up">
-            <Zap className="h-4 w-4" />
-            Browser-Based Monero Mining
-          </div>
-          <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
-            Mine <span className="text-primary text-glow">Monero</span> Directly
-            <br />From Your Browser
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
-            No hardware. No downloads. Start mining XMR using your CPU — just open your browser and earn.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to={user ? "/mining" : "/register"}>
-              <Button variant="neon" size="lg" className="text-base px-8">
-                <Pickaxe className="h-5 w-5 mr-2" />
-                Start Mining
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button variant="neon-outline" size="lg" className="text-base px-8">
-                Login
-              </Button>
-            </Link>
-            {user && (
-              <Link to="/dashboard">
-                <Button variant="secondary" size="lg" className="text-base px-8">
-                  View Dashboard
-                </Button>
-              </Link>
-            )}
+        {/* Ambient glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(199_89%_48%/0.08)_0%,_transparent_65%)]" />
+        <div className="container mx-auto relative z-10">
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            {/* Left content */}
+            <div className="text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm text-primary font-mono mb-6 animate-slide-up">
+                <Zap className="h-4 w-4" />
+                Browser-Based Monero Mining
+              </div>
+              <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
+                Mine <span className="text-primary text-glow">Monero</span> Directly
+                <br />From Your Browser
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-xl mb-10">
+                No hardware. No downloads. Start mining XMR using your CPU — just open your browser and earn.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Link to={user ? "/mining" : "/register"}>
+                  <Button variant="neon" size="lg" className="text-base px-8">
+                    <Pickaxe className="h-5 w-5 mr-2" />
+                    Start Mining
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </Button>
+                </Link>
+                <Link to="/login">
+                  <Button variant="neon-outline" size="lg" className="text-base px-8">
+                    Login
+                  </Button>
+                </Link>
+                {user && (
+                  <Link to="/dashboard">
+                    <Button variant="secondary" size="lg" className="text-base px-8">
+                      View Dashboard
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {/* Right — Globe */}
+            <div className="flex justify-center lg:justify-end">
+              <InteractiveGlobe
+                size={500}
+                dotColor="hsla(199, 89%, 48%, ALPHA)"
+                arcColor="hsla(199, 89%, 48%, 0.5)"
+                markerColor="hsla(199, 89%, 60%, 1)"
+                autoRotateSpeed={0.003}
+              />
+            </div>
           </div>
         </div>
       </section>
