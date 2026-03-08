@@ -43,7 +43,7 @@ const HomePage = () => {
         <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <Cpu className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
-            <span className="text-lg sm:text-xl font-bold font-display text-glow">HARIMINE</span>
+            <span className="text-lg sm:text-xl font-bold font-display text-glow">SHRIMINE</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Tools dropdown */}
