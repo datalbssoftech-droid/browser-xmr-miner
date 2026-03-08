@@ -3,24 +3,36 @@ import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Copy, Users, Coins } from "lucide-react";
+import { Copy, Users, Coins, Gift, Percent } from "lucide-react";
 import { toast } from "sonner";
 
 const ReferralPage = () => {
   const { user } = useAuth();
   const [referrals, setReferrals] = useState<any[]>([]);
   const [referralCode, setReferralCode] = useState("");
+  const [config, setConfig] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!user) return;
     setReferralCode(user.id.slice(0, 8));
-    supabase.from("referrals").select("*").eq("referrer_id", user.id).then(({ data }) => {
-      setReferrals(data || []);
+    
+    Promise.all([
+      supabase.from("referrals").select("*").eq("referrer_id", user.id),
+      supabase.from("platform_config").select("*"),
+    ]).then(([refData, cfgData]) => {
+      setReferrals(refData.data || []);
+      const cfg: Record<string, string> = {};
+      (cfgData.data || []).forEach((item: any) => { cfg[item.key] = item.value; });
+      setConfig(cfg);
     });
   }, [user]);
 
-  const referralLink = `${window.location.origin}/register?ref=${referralCode}`;
+  // Use custom domain if set, otherwise use current origin
+  const baseUrl = config.site_domain ? `https://${config.site_domain}` : window.location.origin;
+  const referralLink = `${baseUrl}/register?ref=${referralCode}`;
   const totalEarnings = referrals.reduce((sum, r) => sum + r.earnings, 0);
+  const commissionRate = config.referral_percentage || "5";
+  const signupBonus = config.referral_signup_bonus || "0";
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
@@ -49,7 +61,7 @@ const ReferralPage = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid sm:grid-cols-2 gap-4 mb-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="stat-card">
             <Users className="h-5 w-5 text-primary mb-2" />
             <p className="text-2xl font-bold font-mono">{referrals.length}</p>
@@ -59,6 +71,16 @@ const ReferralPage = () => {
             <Coins className="h-5 w-5 text-primary mb-2" />
             <p className="text-2xl font-bold font-mono">{totalEarnings.toFixed(6)} XMR</p>
             <p className="text-sm text-muted-foreground">Referral Earnings</p>
+          </div>
+          <div className="stat-card">
+            <Percent className="h-5 w-5 text-primary mb-2" />
+            <p className="text-2xl font-bold font-mono">{commissionRate}%</p>
+            <p className="text-sm text-muted-foreground">Commission Rate</p>
+          </div>
+          <div className="stat-card">
+            <Gift className="h-5 w-5 text-primary mb-2" />
+            <p className="text-2xl font-bold font-mono">{signupBonus} XMR</p>
+            <p className="text-sm text-muted-foreground">Signup Bonus</p>
           </div>
         </div>
 
