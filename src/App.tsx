@@ -15,6 +15,12 @@ import ReferralPage from "./pages/ReferralPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
+import CalculatorPage from "./pages/tools/CalculatorPage";
+import HashrateConverterPage from "./pages/tools/HashrateConverterPage";
+import BenchmarkPage from "./pages/tools/BenchmarkPage";
+import NetworkExplorerPage from "./pages/tools/NetworkExplorerPage";
+import PoolExplorerPage from "./pages/tools/PoolExplorerPage";
+import PriceTrackerPage from "./pages/tools/PriceTrackerPage";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +41,13 @@ const App = () => (
             <Route path="/referrals" element={<ProtectedRoute><ReferralPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+            {/* Tool pages */}
+            <Route path="/tools/calculator" element={<CalculatorPage />} />
+            <Route path="/tools/converter" element={<HashrateConverterPage />} />
+            <Route path="/tools/benchmark" element={<BenchmarkPage />} />
+            <Route path="/tools/network" element={<NetworkExplorerPage />} />
+            <Route path="/tools/pools" element={<PoolExplorerPage />} />
+            <Route path="/tools/price" element={<PriceTrackerPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
