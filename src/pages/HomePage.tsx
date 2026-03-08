@@ -284,6 +284,65 @@ const HomePage = () => {
         </section>
       </AnimatedSection>
 
+      {/* ─── Blog ─── */}
+      <AnimatedSection>
+        <section className="py-8 sm:py-12 px-4 border-t border-border/50">
+          <div className="container mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-2">Latest from the Blog</h2>
+            <p className="text-sm text-muted-foreground text-center mb-6 max-w-lg mx-auto">
+              News, guides, and updates from the Shrimine team.
+            </p>
+            {blogPosts.length === 0 ? (
+              <p className="text-center text-muted-foreground text-sm">No blog posts yet. Check back soon!</p>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {blogPosts.map((post) => (
+                  <div key={post.id} className="stat-card group hover:border-primary/50 transition-colors">
+                    {post.cover_image && (
+                      <img src={post.cover_image} alt={post.title} className="w-full h-32 object-cover rounded-lg mb-3" />
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                      <Calendar className="h-3 w-3" />
+                      {post.published_at ? new Date(post.published_at).toLocaleDateString() : "—"}
+                    </div>
+                    <h3 className="font-bold font-display text-base mb-2 group-hover:text-primary transition-colors">{post.title}</h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{post.excerpt || post.content.slice(0, 100)}...</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </AnimatedSection>
+
+      {/* ─── Newsletter ─── */}
+      <AnimatedSection>
+        <section className="py-8 sm:py-12 px-4 border-t border-border/50">
+          <div className="container mx-auto max-w-xl text-center">
+            <div className="inline-flex p-3 rounded-xl bg-primary/10 mb-4">
+              <Mail className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-display font-bold mb-2">Stay Updated</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Subscribe to our newsletter for mining tips, platform updates, and XMR news.
+            </p>
+            <form onSubmit={handleNewsletterSubscribe} className="flex flex-col sm:flex-row gap-3">
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                required
+                className="flex-1 bg-secondary border-border"
+              />
+              <Button variant="neon" type="submit" disabled={subscribing}>
+                {subscribing ? "Subscribing..." : "Subscribe"}
+              </Button>
+            </form>
+          </div>
+        </section>
+      </AnimatedSection>
+
       {/* Footer */}
       <footer className="border-t border-border/50 py-4 sm:py-6 px-4">
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between text-xs sm:text-sm text-muted-foreground gap-2">
