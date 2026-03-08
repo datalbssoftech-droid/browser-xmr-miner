@@ -13,6 +13,7 @@ import { usePlatformStats, formatHashrate } from "@/hooks/usePlatformStats";
 const HomePage = () => {
   const { user } = useAuth();
   const { data, isLoading } = useXmrMarketData();
+  const { data: stats } = usePlatformStats();
   const market = data?.market;
   const news = data?.news;
 
