@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Users, Pickaxe, Wallet, Settings, Activity, CheckCircle, XCircle, Server, Wifi, WifiOff, Globe, Shield, Hash, BookOpen, Mail, Plus, Trash2, Edit } from "lucide-react";
+import { Users, Pickaxe, Wallet, Settings, Activity, CheckCircle, XCircle, Server, Wifi, WifiOff, Globe, Shield, Hash, BookOpen, Mail, Plus, Trash2, Edit, Gift, Coins } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminPage = () => {
