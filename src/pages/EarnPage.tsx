@@ -12,17 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const POINTS_PER_DOLLAR = 1000;
 
 interface CpaOffer {
-  campid: string;
+  offer_id: string;
   title: string;
   description: string;
-  amount: string;
-  link: string;
+  payout: string;
+  offerlink: string;
   category: string;
-  country: string;
-  epc: string;
-  conversion: string;
-  image?: string;
-  type?: string;
+  accepted_countries: string;
+  netepc: string;
+  type: string;
+  offerphoto?: string;
 }
 
 const EarnPage = () => {
@@ -80,7 +79,7 @@ const EarnPage = () => {
       
       // Use JSONP via script tag to bypass CORS
       const callbackName = `cpagrip_cb_${Date.now()}`;
-      const result = await new Promise<CpaOffer[]>((resolve, reject) => {
+      const result = await new Promise<any[]>((resolve, reject) => {
         const timeout = setTimeout(() => {
           cleanup();
           reject(new Error("Request timed out"));
@@ -94,7 +93,7 @@ const EarnPage = () => {
 
         (window as any)[callbackName] = (data: any) => {
           cleanup();
-          if (data?.offers) {
+          if (data?.offers && Array.isArray(data.offers)) {
             resolve(data.offers);
           } else if (Array.isArray(data)) {
             resolve(data);
@@ -112,6 +111,7 @@ const EarnPage = () => {
         document.head.appendChild(script);
       });
 
+      console.log("CPAGrip raw offers:", JSON.stringify(result.slice(0, 2)));
       setOffers(result);
     } catch (err) {
       console.error("Failed to fetch offers:", err);
@@ -166,9 +166,9 @@ const EarnPage = () => {
     !searchQuery || o.title?.toLowerCase().includes(searchQuery.toLowerCase()) || o.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getPointsForOffer = (amount: string) => {
-    const payout = parseFloat(amount) || 0;
-    return Math.round(payout * POINTS_PER_DOLLAR);
+  const getPointsForOffer = (payout: string) => {
+    const val = parseFloat(payout) || 0;
+    return Math.round(val * POINTS_PER_DOLLAR);
   };
 
   return (
@@ -247,17 +247,17 @@ const EarnPage = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredOffers.map((offer) => {
-                      const pts = getPointsForOffer(offer.amount);
+                      const pts = getPointsForOffer(offer.payout);
                       return (
                         <div
-                          key={offer.campid}
+                          key={offer.offer_id}
                           className="stat-card flex flex-col hover:border-primary/50 transition-all group"
                         >
                           {/* Offer Header */}
                           <div className="flex items-start gap-3 mb-3">
-                            {offer.image ? (
+                            {offer.offerphoto ? (
                               <img
-                                src={offer.image}
+                                src={offer.offerphoto}
                                 alt=""
                                 className="w-12 h-12 rounded-lg object-cover border border-border/50 shrink-0"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -288,10 +288,10 @@ const EarnPage = () => {
                           <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/50">
                             <div>
                               <p className="text-lg font-bold font-mono text-success">+{pts.toLocaleString()}</p>
-                              <p className="text-[10px] text-muted-foreground">points (${parseFloat(offer.amount).toFixed(2)})</p>
+                              <p className="text-[10px] text-muted-foreground">points (${parseFloat(offer.payout).toFixed(2)})</p>
                             </div>
                             <a
-                              href={offer.link}
+                              href={offer.offerlink}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex"
