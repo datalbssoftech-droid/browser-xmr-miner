@@ -24,6 +24,8 @@ const AdminPage = () => {
   const [subscribers, setSubscribers] = useState<any[]>([]);
   const [editingPost, setEditingPost] = useState<any | null>(null);
   const [newPost, setNewPost] = useState({ title: "", slug: "", excerpt: "", content: "", cover_image: "", is_published: false });
+  const [offerCompletions, setOfferCompletions] = useState<any[]>([]);
+  const [pointsRedemptions, setPointsRedemptions] = useState<any[]>([]);
 
   useEffect(() => {
     fetchAll();
