@@ -242,7 +242,18 @@ export const useWebSocketMiner = ({
 
   /** Start mining */
   const startMining = useCallback(() => {
-    connect();
+    if (proxyEnabled && proxyUrl) {
+      // Real mode: connect to proxy, workers start when job arrives
+      connect();
+    } else {
+      // Simulation mode: start workers directly without WebSocket
+      updateStats({ isMining: true, isConnected: false, status: "mining (simulation)" });
+      spawnWorkers({
+        jobId: "sim-" + Date.now(),
+        blob: "0".repeat(64),
+        target: "f".repeat(64),
+      });
+    }
 
     let lastCount = 0;
     statsIntervalRef.current = setInterval(() => {
@@ -255,7 +266,7 @@ export const useWebSocketMiner = ({
         totalHashes: prev.totalHashes + Math.max(0, rate),
       }));
     }, 1000);
-  }, [connect, threads]);
+  }, [connect, threads, proxyEnabled, proxyUrl, spawnWorkers, updateStats]);
 
   /** Stop mining */
   const stopMining = useCallback(() => {
