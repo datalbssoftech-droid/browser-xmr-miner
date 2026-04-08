@@ -53,6 +53,7 @@ const App = () => (
             <Route path="/mining" element={<ProtectedRoute><MiningPage /></ProtectedRoute>} />
             <Route path="/withdrawals" element={<ProtectedRoute><WithdrawalPage /></ProtectedRoute>} />
             <Route path="/referrals" element={<ProtectedRoute><ReferralPage /></ProtectedRoute>} />
+            <Route path="/earn" element={<ProtectedRoute><EarnPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
             {/* Tool pages */}
