@@ -112,6 +112,7 @@ const EarnPage = () => {
         document.head.appendChild(script);
       });
 
+      console.log("CPAGrip raw offers:", JSON.stringify(result.slice(0, 2)));
       setOffers(result);
     } catch (err) {
       console.error("Failed to fetch offers:", err);
