@@ -14,6 +14,7 @@ import WithdrawalPage from "./pages/WithdrawalPage";
 import ReferralPage from "./pages/ReferralPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
+import EarnPage from "./pages/EarnPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import PrivacyPage from "./pages/PrivacyPage";
