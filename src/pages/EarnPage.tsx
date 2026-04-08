@@ -247,17 +247,17 @@ const EarnPage = () => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredOffers.map((offer) => {
-                      const pts = getPointsForOffer(offer.amount);
+                      const pts = getPointsForOffer(offer.payout);
                       return (
                         <div
-                          key={offer.campid}
+                          key={offer.offer_id}
                           className="stat-card flex flex-col hover:border-primary/50 transition-all group"
                         >
                           {/* Offer Header */}
                           <div className="flex items-start gap-3 mb-3">
-                            {offer.image ? (
+                            {offer.offerphoto ? (
                               <img
-                                src={offer.image}
+                                src={offer.offerphoto}
                                 alt=""
                                 className="w-12 h-12 rounded-lg object-cover border border-border/50 shrink-0"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -288,10 +288,10 @@ const EarnPage = () => {
                           <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/50">
                             <div>
                               <p className="text-lg font-bold font-mono text-success">+{pts.toLocaleString()}</p>
-                              <p className="text-[10px] text-muted-foreground">points (${parseFloat(offer.amount).toFixed(2)})</p>
+                              <p className="text-[10px] text-muted-foreground">points (${parseFloat(offer.payout).toFixed(2)})</p>
                             </div>
                             <a
-                              href={offer.link}
+                              href={offer.offerlink}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex"
