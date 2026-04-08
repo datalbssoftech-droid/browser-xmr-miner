@@ -32,7 +32,7 @@ const AdminPage = () => {
   }, []);
 
   const fetchAll = async () => {
-    const [p, s, w, c, sh, bp, ns] = await Promise.all([
+    const [p, s, w, c, sh, bp, ns, oc, pr] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("mining_sessions").select("*").order("started_at", { ascending: false }).limit(50),
       supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
@@ -40,6 +40,8 @@ const AdminPage = () => {
       supabase.from("share_submissions").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("blog_posts").select("*").order("created_at", { ascending: false }),
       supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }),
+      supabase.from("offer_completions").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("points_redemptions").select("*").order("created_at", { ascending: false }),
     ]);
     setUsers(p.data || []);
     setSessions(s.data || []);
