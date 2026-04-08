@@ -49,6 +49,8 @@ const AdminPage = () => {
     setShares(sh.data || []);
     setBlogPosts(bp.data || []);
     setSubscribers(ns.data || []);
+    setOfferCompletions(oc.data || []);
+    setPointsRedemptions(pr.data || []);
     const cfg: Record<string, string> = {};
     (c.data || []).forEach((item: any) => { cfg[item.key] = item.value; });
     setConfig(cfg);
