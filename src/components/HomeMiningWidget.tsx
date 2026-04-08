@@ -14,6 +14,7 @@ export const HomeMiningWidget = () => {
   const maxThreads = navigator.hardwareConcurrency || 4;
 
   const { stats, startMining, stopMining } = useWebSocketMiner({ threads, cpuUsage });
+  const isBusy = stats.isMining || stats.isPending;
 
   if (!user) {
     return (
@@ -31,11 +32,12 @@ export const HomeMiningWidget = () => {
 
   return (
     <div className="stat-card space-y-5">
-      {/* Live stats */}
       <div className="grid grid-cols-3 gap-4 text-center">
         <div>
           <p className="text-xs text-muted-foreground">Hashrate</p>
-          <p className="text-xl font-bold font-mono">{stats.hashrate} <span className="text-xs text-muted-foreground">H/s</span></p>
+          <p className="text-xl font-bold font-mono">
+            {stats.hashrate} <span className="text-xs text-muted-foreground">H/s</span>
+          </p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Shares</p>
@@ -49,13 +51,16 @@ export const HomeMiningWidget = () => {
         </div>
       </div>
 
-      {/* Controls */}
+      <p className="text-center text-xs text-muted-foreground">
+        {stats.isPending ? "waiting for peer connection" : stats.status === "idle" ? "ready for real mining" : stats.status}
+      </p>
+
       <div>
         <div className="flex justify-between text-sm mb-2">
           <span className="text-muted-foreground">CPU Usage</span>
           <span className="font-mono text-primary">{cpuUsage}%</span>
         </div>
-        <Slider value={[cpuUsage]} onValueChange={([v]) => setCpuUsage(v)} min={10} max={100} step={10} disabled={stats.isMining} />
+        <Slider value={[cpuUsage]} onValueChange={([value]) => setCpuUsage(value)} min={10} max={100} step={10} disabled={isBusy} />
       </div>
 
       <div>
@@ -63,17 +68,17 @@ export const HomeMiningWidget = () => {
           <span className="text-muted-foreground">Threads</span>
           <span className="font-mono text-primary">{threads}/{maxThreads}</span>
         </div>
-        <Slider value={[threads]} onValueChange={([v]) => setThreads(v)} min={1} max={maxThreads} step={1} disabled={stats.isMining} />
+        <Slider value={[threads]} onValueChange={([value]) => setThreads(value)} min={1} max={maxThreads} step={1} disabled={isBusy} />
       </div>
 
       <div className="flex gap-3">
-        {!stats.isMining ? (
+        {!isBusy ? (
           <Button variant="neon" className="flex-1" onClick={startMining}>
             <Play className="h-4 w-4 mr-2" /> Start Mining
           </Button>
         ) : (
           <Button variant="destructive" className="flex-1" onClick={stopMining}>
-            <Square className="h-4 w-4 mr-2" /> Stop Mining
+            <Square className="h-4 w-4 mr-2" /> {stats.isPending ? "Cancel Waiting" : "Stop Mining"}
           </Button>
         )}
       </div>

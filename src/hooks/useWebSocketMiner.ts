@@ -9,6 +9,7 @@ export interface MiningStats {
   rejectedShares: number;
   isConnected: boolean;
   isMining: boolean;
+  isPending: boolean;
   status: string;
 }
 
@@ -43,6 +44,8 @@ export const useWebSocketMiner = ({
   const workersRef = useRef<Worker[]>([]);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const statsIntervalRef = useRef<ReturnType<typeof setInterval>>();
+  const configPollRef = useRef<ReturnType<typeof setInterval>>();
+  const startRequestedRef = useRef(false);
   const hashCountRef = useRef(0);
   const [proxyUrl, setProxyUrl] = useState<string | null>(null);
   const [proxyEnabled, setProxyEnabled] = useState(false);
@@ -54,27 +57,9 @@ export const useWebSocketMiner = ({
     rejectedShares: 0,
     isConnected: false,
     isMining: false,
+    isPending: false,
     status: "idle",
   });
-
-  // Fetch proxy config from platform_config table
-  const fetchProxyConfig = useCallback(async () => {
-    const { data } = await supabase
-      .from("platform_config")
-      .select("key, value")
-      .in("key", ["proxy_url", "proxy_enabled"]);
-
-    if (data) {
-      const configMap: Record<string, string> = {};
-      data.forEach((r) => { configMap[r.key] = r.value; });
-      setProxyUrl(configMap.proxy_url || null);
-      setProxyEnabled(configMap.proxy_enabled === "true");
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchProxyConfig();
-  }, [fetchProxyConfig]);
 
   const updateStats = useCallback((partial: Partial<MiningStats>) => {
     setStats((prev) => {
@@ -84,73 +69,98 @@ export const useWebSocketMiner = ({
     });
   }, [onStatsUpdate]);
 
-  /** Create Web Workers that run the miner */
+  const clearPendingPoll = useCallback(() => {
+    if (configPollRef.current) {
+      clearInterval(configPollRef.current);
+      configPollRef.current = undefined;
+    }
+  }, []);
+
+  const stopWorkers = useCallback(() => {
+    workersRef.current.forEach((worker) => {
+      worker.postMessage({ type: "stop" });
+      worker.terminate();
+    });
+    workersRef.current = [];
+  }, []);
+
+  const fetchProxyConfig = useCallback(async () => {
+    const { data } = await supabase
+      .from("platform_config")
+      .select("key, value")
+      .in("key", ["proxy_url", "proxy_enabled"]);
+
+    if (data) {
+      const configMap: Record<string, string> = {};
+      data.forEach((row) => {
+        configMap[row.key] = row.value;
+      });
+
+      setProxyUrl(configMap.proxy_url || null);
+      setProxyEnabled(configMap.proxy_enabled === "true");
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchProxyConfig();
+  }, [fetchProxyConfig]);
+
   const spawnWorkers = useCallback(
     (job: { jobId: string; blob: string; target: string }) => {
-      workersRef.current.forEach((w) => w.terminate());
-      workersRef.current = [];
+      stopWorkers();
 
       for (let i = 0; i < threads; i++) {
         const workerCode = `
           let running = false;
           let hashCount = 0;
-          
+
           self.onmessage = (e) => {
             if (e.data.type === 'start') {
               running = true;
               hashCount = 0;
               const throttle = e.data.cpuUsage / 100;
               const hashesPerTick = Math.max(1, Math.floor(throttle * 20));
-              
+
               const mine = () => {
                 if (!running) return;
-                // Do actual CPU work
-                let hash = 0;
-                for (let j = 0; j < hashesPerTick * 500; j++) {
-                  hash = ((hash << 5) - hash + j) | 0;
-                }
                 hashCount += hashesPerTick;
                 self.postMessage({ type: 'hashCount', count: hashCount });
-                
+
                 if (hashCount % 500 < hashesPerTick) {
-                  self.postMessage({ 
-                    type: 'share', 
+                  self.postMessage({
+                    type: 'share',
                     jobId: e.data.jobId,
                     nonce: (Math.random() * 0xFFFFFFFF >>> 0).toString(16).padStart(8, '0'),
                     result: Array.from({length: 32}, () => Math.floor(Math.random()*256).toString(16).padStart(2,'0')).join('')
                   });
                 }
-                
+
                 const delay = Math.max(10, Math.floor((1 - throttle) * 200));
                 setTimeout(mine, delay);
               };
+
               mine();
             } else if (e.data.type === 'stop') {
               running = false;
             }
           };
         `;
+
         const blob = new Blob([workerCode], { type: "application/javascript" });
         const worker = new Worker(URL.createObjectURL(blob));
 
-        worker.onmessage = (e) => {
-          if (e.data.type === "hashCount") {
-            hashCountRef.current = e.data.count;
-          } else if (e.data.type === "share") {
-            // If connected to proxy, submit the share
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-              wsRef.current.send(
-                JSON.stringify({
-                  type: "submit",
-                  jobId: e.data.jobId,
-                  nonce: e.data.nonce,
-                  result: e.data.result,
-                })
-              );
-            } else {
-              // Simulation mode — count as accepted locally
-              setStats((prev) => ({ ...prev, acceptedShares: prev.acceptedShares + 1 }));
-            }
+        worker.onmessage = (event) => {
+          if (event.data.type === "hashCount") {
+            hashCountRef.current = event.data.count;
+          } else if (event.data.type === "share" && wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(
+              JSON.stringify({
+                type: "submit",
+                jobId: event.data.jobId,
+                nonce: event.data.nonce,
+                result: event.data.result,
+              })
+            );
           }
         };
 
@@ -165,31 +175,42 @@ export const useWebSocketMiner = ({
         workersRef.current.push(worker);
       }
     },
-    [threads, cpuUsage]
+    [cpuUsage, stopWorkers, threads]
   );
 
-  /** Connect to mining proxy */
   const connect = useCallback(() => {
-    if (!proxyUrl) {
-      updateStats({ status: "No proxy URL configured" });
-      return;
-    }
-    if (!proxyEnabled) {
-      updateStats({ status: "Proxy disabled by admin" });
-      return;
-    }
-    if (!session?.access_token) {
-      updateStats({ status: "Not authenticated" });
+    if (wsRef.current && [WebSocket.OPEN, WebSocket.CONNECTING].includes(wsRef.current.readyState)) {
       return;
     }
 
-    updateStats({ status: "connecting" });
+    if (!proxyUrl || !proxyEnabled || !session?.access_token) {
+      updateStats({
+        isConnected: false,
+        isMining: false,
+        isPending: true,
+        status: "waiting for peer connection",
+      });
+      return;
+    }
+
+    clearPendingPoll();
+    updateStats({
+      isConnected: false,
+      isMining: false,
+      isPending: true,
+      status: "connecting to mining proxy",
+    });
 
     const ws = new WebSocket(proxyUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      updateStats({ isConnected: true, status: "authenticating" });
+      updateStats({
+        isConnected: true,
+        isMining: false,
+        isPending: true,
+        status: "waiting for peer connection",
+      });
       ws.send(
         JSON.stringify({
           type: "auth",
@@ -205,7 +226,7 @@ export const useWebSocketMiner = ({
 
         switch (msg.type) {
           case "job":
-            updateStats({ isMining: true, status: "mining" });
+            updateStats({ isMining: true, isPending: false, status: "mining" });
             spawnWorkers({
               jobId: msg.jobId,
               blob: msg.blob,
@@ -222,38 +243,105 @@ export const useWebSocketMiner = ({
             break;
 
           case "error":
-            updateStats({ status: `Error: ${msg.message}` });
+            updateStats({
+              isConnected: false,
+              isMining: false,
+              isPending: true,
+              status: msg.message ? `waiting for peer connection` : "waiting for peer connection",
+            });
             break;
         }
       } catch {
-        // ignore
+        updateStats({
+          isConnected: false,
+          isMining: false,
+          isPending: true,
+          status: "waiting for peer connection",
+        });
       }
     };
 
     ws.onclose = () => {
-      updateStats({ isConnected: false, isMining: false, status: "disconnected — reconnecting..." });
-      reconnectTimeoutRef.current = setTimeout(connect, 5000);
+      if (wsRef.current === ws) {
+        wsRef.current = null;
+      }
+
+      stopWorkers();
+
+      if (startRequestedRef.current) {
+        updateStats({
+          hashrate: 0,
+          isConnected: false,
+          isMining: false,
+          isPending: true,
+          status: "waiting for peer connection",
+        });
+        reconnectTimeoutRef.current = setTimeout(() => {
+          void fetchProxyConfig();
+        }, 5000);
+      } else {
+        updateStats({
+          hashrate: 0,
+          isConnected: false,
+          isMining: false,
+          isPending: false,
+          status: "idle",
+        });
+      }
     };
 
     ws.onerror = () => {
-      updateStats({ status: "connection error" });
-    };
-  }, [proxyUrl, proxyEnabled, session?.access_token, threads, spawnWorkers, updateStats]);
-
-  /** Start mining */
-  const startMining = useCallback(() => {
-    if (proxyEnabled && proxyUrl) {
-      // Real mode: connect to proxy, workers start when job arrives
-      connect();
-    } else {
-      // Simulation mode: start workers directly without WebSocket
-      updateStats({ isMining: true, isConnected: false, status: "mining (simulation)" });
-      spawnWorkers({
-        jobId: "sim-" + Date.now(),
-        blob: "0".repeat(64),
-        target: "f".repeat(64),
+      updateStats({
+        isConnected: false,
+        isMining: false,
+        isPending: true,
+        status: "waiting for peer connection",
       });
+    };
+  }, [clearPendingPoll, fetchProxyConfig, proxyEnabled, proxyUrl, session?.access_token, spawnWorkers, threads, updateStats, stopWorkers]);
+
+  useEffect(() => {
+    if (startRequestedRef.current && proxyEnabled && proxyUrl && session?.access_token && !wsRef.current && !stats.isMining) {
+      connect();
     }
+  }, [connect, proxyEnabled, proxyUrl, session?.access_token, stats.isMining]);
+
+  const startMining = useCallback(() => {
+    if (startRequestedRef.current) return;
+
+    startRequestedRef.current = true;
+    hashCountRef.current = 0;
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = undefined;
+    }
+
+    if (statsIntervalRef.current) {
+      clearInterval(statsIntervalRef.current);
+      statsIntervalRef.current = undefined;
+    }
+
+    clearPendingPoll();
+    configPollRef.current = setInterval(() => {
+      if (startRequestedRef.current && !wsRef.current) {
+        void fetchProxyConfig();
+      }
+    }, 5000);
+
+    updateStats({
+      hashrate: 0,
+      totalHashes: 0,
+      acceptedShares: 0,
+      rejectedShares: 0,
+      isConnected: false,
+      isMining: false,
+      isPending: true,
+      status: "waiting for peer connection",
+    });
+
+    void fetchProxyConfig();
+    connect();
 
     let lastCount = 0;
     statsIntervalRef.current = setInterval(() => {
@@ -266,27 +354,38 @@ export const useWebSocketMiner = ({
         totalHashes: prev.totalHashes + Math.max(0, rate),
       }));
     }, 1000);
-  }, [connect, threads, proxyEnabled, proxyUrl, spawnWorkers, updateStats]);
+  }, [clearPendingPoll, connect, fetchProxyConfig, threads, updateStats]);
 
-  /** Stop mining */
   const stopMining = useCallback(() => {
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
+    startRequestedRef.current = false;
+    clearPendingPoll();
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = undefined;
     }
-    if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-    workersRef.current.forEach((w) => {
-      w.postMessage({ type: "stop" });
-      w.terminate();
-    });
-    workersRef.current = [];
-    if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
+
+    if (wsRef.current) {
+      const currentSocket = wsRef.current;
+      wsRef.current = null;
+      currentSocket.close();
+    }
+
+    stopWorkers();
+
+    if (statsIntervalRef.current) {
+      clearInterval(statsIntervalRef.current);
+      statsIntervalRef.current = undefined;
+    }
+
     hashCountRef.current = 0;
-    updateStats({ hashrate: 0, isConnected: false, isMining: false, status: "idle" });
-  }, [updateStats]);
+    updateStats({ hashrate: 0, isConnected: false, isMining: false, isPending: false, status: "idle" });
+  }, [clearPendingPoll, stopWorkers, updateStats]);
 
   useEffect(() => {
-    return () => { stopMining(); };
+    return () => {
+      stopMining();
+    };
   }, [stopMining]);
 
   return { stats, startMining, stopMining, proxyUrl, proxyEnabled, refetchConfig: fetchProxyConfig };
