@@ -93,7 +93,7 @@ const EarnPage = () => {
 
         (window as any)[callbackName] = (data: any) => {
           cleanup();
-          if (data?.offers) {
+          if (data?.offers && Array.isArray(data.offers)) {
             resolve(data.offers);
           } else if (Array.isArray(data)) {
             resolve(data);
