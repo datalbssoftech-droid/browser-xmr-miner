@@ -636,6 +636,143 @@ const AdminPage = () => {
             </div>
           </TabsContent>
 
+          {/* ─── Offers & Redemptions ─── */}
+          <TabsContent value="offers">
+            <div className="space-y-6">
+              {/* CPAGrip Config */}
+              <div className="stat-card">
+                <div className="flex items-center gap-2 mb-4">
+                  <Gift className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">CPAGrip Offerwall Settings</h3>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <Label>Offerwall URL</Label>
+                    <Input
+                      value={config.cpagrip_offerwall_url || ""}
+                      onChange={(e) => setConfig({ ...config, cpagrip_offerwall_url: e.target.value })}
+                      placeholder="https://www.cpagrip.com/show.php?id=XXXXX"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Your CPAGrip offerwall embed URL</p>
+                  </div>
+                  <div>
+                    <Label>Points per Dollar</Label>
+                    <Input
+                      value={config.points_per_dollar || "1000"}
+                      onChange={(e) => setConfig({ ...config, points_per_dollar: e.target.value })}
+                      placeholder="1000"
+                      type="number"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">How many points = $1.00</p>
+                  </div>
+                  <div>
+                    <Label>Min Redemption Points</Label>
+                    <Input
+                      value={config.min_redemption_points || "1000"}
+                      onChange={(e) => setConfig({ ...config, min_redemption_points: e.target.value })}
+                      placeholder="1000"
+                      type="number"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label>Postback URL (set in CPAGrip)</Label>
+                    <Input
+                      value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cpagrip-postback?user_id={subid}&offer_id={offer_id}&offer_name={offer_name}&payout={payout}&transaction_id={transaction_id}&ip={ip}`}
+                      disabled
+                      className="mt-1 bg-secondary border-border font-mono text-xs"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Copy this URL to your CPAGrip postback settings</p>
+                  </div>
+                </div>
+                <Button variant="neon" onClick={saveConfig} disabled={configSaving}>
+                  {configSaving ? "Saving..." : "Save Offerwall Settings"}
+                </Button>
+              </div>
+
+              {/* Redemption Requests */}
+              <div className="stat-card">
+                <div className="flex items-center gap-2 mb-4">
+                  <Coins className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Point Redemption Requests ({pointsRedemptions.length})</h3>
+                </div>
+                {pointsRedemptions.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No redemption requests.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {pointsRedemptions.map((r) => (
+                      <div key={r.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                        <div>
+                          <p className="font-mono text-sm">{r.points} pts → ${r.amount.toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">{r.wallet_address}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {r.status === "pending" ? (
+                            <>
+                              <Button size="sm" variant="ghost" className="text-success" onClick={async () => {
+                                const { error } = await supabase.from("points_redemptions").update({ status: "approved", processed_at: new Date().toISOString() }).eq("id", r.id);
+                                if (error) toast.error("Failed");
+                                else {
+                                  // Update redeemed points
+                                  const { data: bal } = await supabase.from("points_balance").select("*").eq("user_id", r.user_id).maybeSingle();
+                                  if (bal) {
+                                    await supabase.from("points_balance").update({ redeemed_points: bal.redeemed_points + r.points }).eq("user_id", r.user_id);
+                                  }
+                                  toast.success("Redemption approved!");
+                                  fetchAll();
+                                }
+                              }}>
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
+                                const { error } = await supabase.from("points_redemptions").update({ status: "rejected", processed_at: new Date().toISOString() }).eq("id", r.id);
+                                if (error) toast.error("Failed");
+                                else { toast.success("Redemption rejected"); fetchAll(); }
+                              }}>
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <span className={`text-xs px-2 py-1 rounded-full ${r.status === "approved" ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"}`}>
+                              {r.status}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Offer Completions Log */}
+              <div className="stat-card">
+                <h3 className="font-semibold mb-4">Recent Offer Completions ({offerCompletions.length})</h3>
+                {offerCompletions.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No offer completions yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {offerCompletions.map((o) => (
+                      <div key={o.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
+                        <div>
+                          <p className="text-sm font-medium">{o.offer_name || "Unknown Offer"}</p>
+                          <p className="text-xs text-muted-foreground font-mono">User: {o.user_id.slice(0, 8)}... · TXN: {o.transaction_id || "N/A"}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-mono text-success">+{o.points_earned} pts</p>
+                          <p className="text-xs text-muted-foreground">${o.payout.toFixed(3)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
           {/* ─── Newsletter Management ─── */}
           <TabsContent value="newsletter">
             <div className="stat-card">
