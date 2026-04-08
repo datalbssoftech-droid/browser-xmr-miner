@@ -12,17 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const POINTS_PER_DOLLAR = 1000;
 
 interface CpaOffer {
-  campid: string;
+  offer_id: string;
   title: string;
   description: string;
-  amount: string;
-  link: string;
+  payout: string;
+  offerlink: string;
   category: string;
-  country: string;
-  epc: string;
-  conversion: string;
-  image?: string;
-  type?: string;
+  accepted_countries: string;
+  netepc: string;
+  type: string;
+  offerphoto?: string;
 }
 
 const EarnPage = () => {
