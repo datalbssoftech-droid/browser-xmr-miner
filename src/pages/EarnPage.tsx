@@ -80,7 +80,7 @@ const EarnPage = () => {
       
       // Use JSONP via script tag to bypass CORS
       const callbackName = `cpagrip_cb_${Date.now()}`;
-      const result = await new Promise<CpaOffer[]>((resolve, reject) => {
+      const result = await new Promise<any[]>((resolve, reject) => {
         const timeout = setTimeout(() => {
           cleanup();
           reject(new Error("Request timed out"));
