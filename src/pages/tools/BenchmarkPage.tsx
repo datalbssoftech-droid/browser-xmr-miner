@@ -23,25 +23,28 @@ const BenchmarkPage = () => {
     setTotalOps(0);
     startTimeRef.current = Date.now();
 
-    // Simulate CPU-intensive work to estimate hashing speed
-    let ops = 0;
+    let cumulativeHashes = 0;
+
     intervalRef.current = window.setInterval(() => {
       const start = performance.now();
-      // Do some CPU work (simple hash-like computation)
+      // Simulate CPU-intensive hashing work
       let hash = 0;
-      for (let i = 0; i < 100000; i++) {
-        hash = ((hash << 5) - hash + i) | 0;
+      const iterations = 200000;
+      for (let i = 0; i < iterations; i++) {
+        hash = ((hash << 5) - hash + (i ^ 0x5f3759df)) | 0;
+        hash = ((hash >>> 16) ^ hash) * 0x45d9f3b | 0;
       }
-      const duration = performance.now() - start;
-      // Estimate H/s based on computational speed
-      // RandomX is ~1000x slower than simple ops, so we scale down
-      const estimatedHps = Math.round((100000 / duration) * 0.8);
-      ops += estimatedHps;
-      setTotalOps(ops);
+      const durationMs = performance.now() - start;
+
+      // Scale: RandomX does ~500-2000 H/s on typical CPUs
+      // Our simple ops run ~100x faster, so divide accordingly
+      const estimatedHps = Math.round((iterations / durationMs) * 0.05);
+      cumulativeHashes += estimatedHps;
+      setTotalOps(cumulativeHashes);
 
       const elapsedSec = (Date.now() - startTimeRef.current) / 1000;
       setElapsed(elapsedSec);
-      setHashrate(Math.round(ops / elapsedSec));
+      setHashrate(Math.round(cumulativeHashes / Math.max(1, elapsedSec)));
     }, 1000);
   };
 
