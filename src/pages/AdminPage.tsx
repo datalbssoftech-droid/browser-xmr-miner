@@ -647,14 +647,24 @@ const AdminPage = () => {
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <Label>Offerwall URL</Label>
+                    <Label>CPAGrip User ID</Label>
                     <Input
-                      value={config.cpagrip_offerwall_url || ""}
-                      onChange={(e) => setConfig({ ...config, cpagrip_offerwall_url: e.target.value })}
-                      placeholder="https://www.cpagrip.com/show.php?id=XXXXX"
+                      value={config.cpagrip_user_id || ""}
+                      onChange={(e) => setConfig({ ...config, cpagrip_user_id: e.target.value })}
+                      placeholder="2509566"
                       className="mt-1 bg-secondary border-border font-mono text-sm"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">Your CPAGrip offerwall embed URL</p>
+                    <p className="text-xs text-muted-foreground mt-1">Your affiliate ID from CPAGrip</p>
+                  </div>
+                  <div>
+                    <Label>CPAGrip Public Key</Label>
+                    <Input
+                      value={config.cpagrip_pubkey || ""}
+                      onChange={(e) => setConfig({ ...config, cpagrip_pubkey: e.target.value })}
+                      placeholder="1f17662576f41ab825bb6caf03ff8635"
+                      className="mt-1 bg-secondary border-border font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Public key for client-side JSON feed</p>
                   </div>
                   <div>
                     <Label>Points per Dollar</Label>
@@ -677,8 +687,8 @@ const AdminPage = () => {
                       className="mt-1 bg-secondary border-border font-mono text-sm"
                     />
                   </div>
-                  <div>
-                    <Label>Postback URL (set in CPAGrip)</Label>
+                  <div className="sm:col-span-2">
+                    <Label>Postback URL (set in CPAGrip → Postback Tools)</Label>
                     <div className="flex gap-2 mt-1">
                       <Input
                         value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cpagrip-postback?user_id={subid}&offer_id={offer_id}&offer_name={offer_name}&payout={payout}&transaction_id={transaction_id}&ip={ip}`}
@@ -692,6 +702,14 @@ const AdminPage = () => {
                       }}>Copy</Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Copy this URL to your CPAGrip postback settings</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>JSON Feed Preview URL</Label>
+                    <Input
+                      value={config.cpagrip_user_id && config.cpagrip_pubkey ? `https://www.cpagrip.com/common/offer_feed_json.php?user_id=${config.cpagrip_user_id}&pubkey=${config.cpagrip_pubkey}&tracking_id={user_id}` : "Configure User ID and Public Key first"}
+                      readOnly
+                      className="mt-1 bg-secondary border-border font-mono text-xs"
+                    />
                   </div>
                 </div>
                 <Button variant="neon" onClick={saveConfig} disabled={configSaving}>
