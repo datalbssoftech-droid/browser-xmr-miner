@@ -134,6 +134,45 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_completions: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          offer_id: string
+          offer_name: string | null
+          payout: number
+          points_earned: number
+          status: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          offer_id: string
+          offer_name?: string | null
+          payout?: number
+          points_earned?: number
+          status?: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          offer_id?: string
+          offer_name?: string | null
+          payout?: number
+          points_earned?: number
+          status?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       platform_config: {
         Row: {
           id: string
@@ -152,6 +191,63 @@ export type Database = {
           key?: string
           updated_at?: string
           value?: string
+        }
+        Relationships: []
+      }
+      points_balance: {
+        Row: {
+          id: string
+          redeemed_points: number
+          total_points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          redeemed_points?: number
+          total_points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          redeemed_points?: number
+          total_points?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      points_redemptions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          points: number
+          processed_at: string | null
+          status: string
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          points: number
+          processed_at?: string | null
+          status?: string
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          points?: number
+          processed_at?: string | null
+          status?: string
+          user_id?: string
+          wallet_address?: string
         }
         Relationships: []
       }
