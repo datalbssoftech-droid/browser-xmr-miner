@@ -1,11 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Cpu, LayoutDashboard, Pickaxe, User, Users, Wallet, Shield, LogOut } from "lucide-react";
+import { Cpu, LayoutDashboard, Pickaxe, User, Users, Wallet, Shield, LogOut, Gift } from "lucide-react";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/mining", label: "Mining", icon: Pickaxe },
+  { to: "/earn", label: "Earn", icon: Gift },
   { to: "/withdrawals", label: "Withdraw", icon: Wallet },
   { to: "/referrals", label: "Referrals", icon: Users },
   { to: "/profile", label: "Profile", icon: User },
