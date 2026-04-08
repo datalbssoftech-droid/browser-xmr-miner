@@ -679,11 +679,18 @@ const AdminPage = () => {
                   </div>
                   <div>
                     <Label>Postback URL (set in CPAGrip)</Label>
-                    <Input
-                      value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cpagrip-postback?user_id={subid}&offer_id={offer_id}&offer_name={offer_name}&payout={payout}&transaction_id={transaction_id}&ip={ip}`}
-                      disabled
-                      className="mt-1 bg-secondary border-border font-mono text-xs"
-                    />
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cpagrip-postback?user_id={subid}&offer_id={offer_id}&offer_name={offer_name}&payout={payout}&transaction_id={transaction_id}&ip={ip}`}
+                        readOnly
+                        className="bg-secondary border-border font-mono text-xs"
+                        onClick={(e) => (e.target as HTMLInputElement).select()}
+                      />
+                      <Button variant="neon-outline" size="sm" type="button" onClick={() => {
+                        navigator.clipboard.writeText(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cpagrip-postback?user_id={subid}&offer_id={offer_id}&offer_name={offer_name}&payout={payout}&transaction_id={transaction_id}&ip={ip}`);
+                        toast.success("Postback URL copied!");
+                      }}>Copy</Button>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">Copy this URL to your CPAGrip postback settings</p>
                   </div>
                 </div>
