@@ -166,9 +166,9 @@ const EarnPage = () => {
     !searchQuery || o.title?.toLowerCase().includes(searchQuery.toLowerCase()) || o.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getPointsForOffer = (amount: string) => {
-    const payout = parseFloat(amount) || 0;
-    return Math.round(payout * POINTS_PER_DOLLAR);
+  const getPointsForOffer = (payout: string) => {
+    const val = parseFloat(payout) || 0;
+    return Math.round(val * POINTS_PER_DOLLAR);
   };
 
   return (
