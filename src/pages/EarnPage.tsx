@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,10 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Gift, Coins, ArrowRight, Wallet, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Gift, Coins, ArrowRight, Wallet, CheckCircle, ExternalLink, Search, Loader2, Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const POINTS_PER_DOLLAR = 1000; // 1000 points = $1
+const POINTS_PER_DOLLAR = 1000;
+
+interface CpaOffer {
+  campid: string;
+  title: string;
+  description: string;
+  amount: string;
+  link: string;
+  category: string;
+  country: string;
+  epc: string;
+  conversion: string;
+  image?: string;
+  type?: string;
+}
 
 const EarnPage = () => {
   const { user, profile } = useAuth();
@@ -18,12 +32,17 @@ const EarnPage = () => {
   const [redemptions, setRedemptions] = useState<any[]>([]);
   const [redeemPoints, setRedeemPoints] = useState("");
   const [loading, setLoading] = useState(false);
-  const [offerwallUrl, setOfferwallUrl] = useState("");
+
+  // Offers state
+  const [offers, setOffers] = useState<CpaOffer[]>([]);
+  const [offersLoading, setOffersLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [feedConfig, setFeedConfig] = useState<{ user_id: string; pubkey: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
     fetchData();
-    fetchOfferwallConfig();
+    fetchFeedConfig();
   }, [user]);
 
   const fetchData = async () => {
@@ -38,14 +57,74 @@ const EarnPage = () => {
     setRedemptions(r.data || []);
   };
 
-  const fetchOfferwallConfig = async () => {
+  const fetchFeedConfig = async () => {
     const { data } = await supabase
       .from("platform_config")
-      .select("value")
-      .eq("key", "cpagrip_offerwall_url")
-      .maybeSingle();
-    if (data) setOfferwallUrl(data.value);
+      .select("key, value")
+      .in("key", ["cpagrip_user_id", "cpagrip_pubkey"]);
+
+    if (data && data.length > 0) {
+      const cfg: Record<string, string> = {};
+      data.forEach((d: any) => { cfg[d.key] = d.value; });
+      if (cfg.cpagrip_user_id && cfg.cpagrip_pubkey) {
+        setFeedConfig({ user_id: cfg.cpagrip_user_id, pubkey: cfg.cpagrip_pubkey });
+      }
+    }
   };
+
+  const fetchOffers = useCallback(async () => {
+    if (!feedConfig || !user) return;
+    setOffersLoading(true);
+    try {
+      const feedUrl = `https://www.cpagrip.com/common/offer_feed_json.php?user_id=${feedConfig.user_id}&pubkey=${feedConfig.pubkey}&tracking_id=${user.id}`;
+      
+      // Use JSONP via script tag to bypass CORS
+      const callbackName = `cpagrip_cb_${Date.now()}`;
+      const result = await new Promise<CpaOffer[]>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error("Request timed out"));
+        }, 10000);
+
+        const cleanup = () => {
+          clearTimeout(timeout);
+          delete (window as any)[callbackName];
+          script.remove();
+        };
+
+        (window as any)[callbackName] = (data: any) => {
+          cleanup();
+          if (data?.offers) {
+            resolve(data.offers);
+          } else if (Array.isArray(data)) {
+            resolve(data);
+          } else {
+            resolve([]);
+          }
+        };
+
+        const script = document.createElement("script");
+        script.src = `${feedUrl}&callback=${callbackName}`;
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("Failed to load offers"));
+        };
+        document.head.appendChild(script);
+      });
+
+      setOffers(result);
+    } catch (err) {
+      console.error("Failed to fetch offers:", err);
+      toast.error("Failed to load offers. Please try again.");
+    }
+    setOffersLoading(false);
+  }, [feedConfig, user]);
+
+  useEffect(() => {
+    if (feedConfig && user) {
+      fetchOffers();
+    }
+  }, [feedConfig, user, fetchOffers]);
 
   const availablePoints = balance.total_points - balance.redeemed_points;
   const availableDollars = availablePoints / POINTS_PER_DOLLAR;
@@ -83,10 +162,14 @@ const EarnPage = () => {
     setLoading(false);
   };
 
-  // Build offerwall URL with user's ID as subid
-  const fullOfferwallUrl = offerwallUrl
-    ? `${offerwallUrl}${offerwallUrl.includes("?") ? "&" : "?"}subid=${user?.id || ""}`
-    : "";
+  const filteredOffers = offers.filter((o) =>
+    !searchQuery || o.title?.toLowerCase().includes(searchQuery.toLowerCase()) || o.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getPointsForOffer = (amount: string) => {
+    const payout = parseFloat(amount) || 0;
+    return Math.round(payout * POINTS_PER_DOLLAR);
+  };
 
   return (
     <AppLayout>
@@ -120,30 +203,116 @@ const EarnPage = () => {
 
         <Tabs defaultValue="offers">
           <TabsList className="bg-secondary border border-border mb-6">
-            <TabsTrigger value="offers">Offerwall</TabsTrigger>
+            <TabsTrigger value="offers">Available Offers</TabsTrigger>
             <TabsTrigger value="redeem">Redeem Points</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
-          {/* Offerwall */}
+          {/* Offers */}
           <TabsContent value="offers">
-            <div className="stat-card">
-              {fullOfferwallUrl ? (
-                <iframe
-                  src={fullOfferwallUrl}
-                  className="w-full rounded-lg border border-border"
-                  style={{ minHeight: "600px" }}
-                  title="CPAGrip Offerwall"
-                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
-                />
-              ) : (
-                <div className="text-center py-16">
-                  <Gift className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Offerwall is not configured yet.</p>
-                  <p className="text-xs text-muted-foreground mt-1">Contact admin to set up the offerwall.</p>
+            {!feedConfig ? (
+              <div className="stat-card text-center py-16">
+                <Gift className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Offerwall is not configured yet.</p>
+                <p className="text-xs text-muted-foreground mt-1">Contact admin to set up the offer feed.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Search & Refresh */}
+                <div className="flex gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search offers..."
+                      className="pl-10 bg-secondary border-border"
+                    />
+                  </div>
+                  <Button variant="neon-outline" size="sm" onClick={fetchOffers} disabled={offersLoading}>
+                    {offersLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+                  </Button>
                 </div>
-              )}
-            </div>
+
+                {/* Offers Grid */}
+                {offersLoading && offers.length === 0 ? (
+                  <div className="text-center py-16">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading offers...</p>
+                  </div>
+                ) : filteredOffers.length === 0 ? (
+                  <div className="stat-card text-center py-12">
+                    <p className="text-muted-foreground">No offers available right now. Check back later!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredOffers.map((offer) => {
+                      const pts = getPointsForOffer(offer.amount);
+                      return (
+                        <div
+                          key={offer.campid}
+                          className="stat-card flex flex-col hover:border-primary/50 transition-all group"
+                        >
+                          {/* Offer Header */}
+                          <div className="flex items-start gap-3 mb-3">
+                            {offer.image ? (
+                              <img
+                                src={offer.image}
+                                alt=""
+                                className="w-12 h-12 rounded-lg object-cover border border-border/50 shrink-0"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                <Star className="h-5 w-5 text-primary" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-sm font-semibold line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                                {offer.title}
+                              </h3>
+                              {offer.category && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground mt-1 inline-block">
+                                  {offer.category}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          <p className="text-xs text-muted-foreground line-clamp-3 mb-4 flex-1">
+                            {offer.description || "Complete this offer to earn points."}
+                          </p>
+
+                          {/* Reward & CTA */}
+                          <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/50">
+                            <div>
+                              <p className="text-lg font-bold font-mono text-success">+{pts.toLocaleString()}</p>
+                              <p className="text-[10px] text-muted-foreground">points (${parseFloat(offer.amount).toFixed(2)})</p>
+                            </div>
+                            <a
+                              href={offer.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex"
+                            >
+                              <Button size="sm" variant="neon" className="gap-1.5">
+                                Complete
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground text-center mt-4">
+                  {filteredOffers.length} offers available · Points are credited automatically after completion
+                </p>
+              </div>
+            )}
           </TabsContent>
 
           {/* Redeem */}
@@ -193,7 +362,6 @@ const EarnPage = () => {
           {/* History */}
           <TabsContent value="history">
             <div className="space-y-6">
-              {/* Offer completions */}
               <div className="stat-card">
                 <h3 className="font-semibold mb-4">Completed Offers</h3>
                 {completions.length === 0 ? (
@@ -213,7 +381,6 @@ const EarnPage = () => {
                 )}
               </div>
 
-              {/* Redemptions */}
               <div className="stat-card">
                 <h3 className="font-semibold mb-4">Redemption Requests</h3>
                 {redemptions.length === 0 ? (
