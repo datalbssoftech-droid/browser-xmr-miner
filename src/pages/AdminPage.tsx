@@ -127,6 +127,7 @@ const AdminPage = () => {
             <TabsTrigger value="sessions">Sessions</TabsTrigger>
             <TabsTrigger value="shares">Shares</TabsTrigger>
             <TabsTrigger value="blog">Blog</TabsTrigger>
+            <TabsTrigger value="offers">Offers</TabsTrigger>
             <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
             <TabsTrigger value="config">Platform</TabsTrigger>
           </TabsList>
