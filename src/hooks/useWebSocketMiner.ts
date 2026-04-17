@@ -156,9 +156,12 @@ export const useWebSocketMiner = ({
             wsRef.current.send(
               JSON.stringify({
                 type: "submit",
-                jobId: event.data.jobId,
-                nonce: event.data.nonce,
-                result: event.data.result,
+                id: crypto.randomUUID(),
+                share: {
+                  job_id: event.data.jobId,
+                  nonce: event.data.nonce,
+                  result: event.data.result,
+                },
               })
             );
           }
@@ -201,7 +204,9 @@ export const useWebSocketMiner = ({
       status: "connecting to mining proxy",
     });
 
-    const ws = new WebSocket(proxyUrl);
+    // Proxy expects token in query string for auth
+    const wsUrl = `${proxyUrl}${proxyUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(session.access_token)}`;
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -209,15 +214,8 @@ export const useWebSocketMiner = ({
         isConnected: true,
         isMining: false,
         isPending: true,
-        status: "waiting for peer connection",
+        status: "connected — waiting for job",
       });
-      ws.send(
-        JSON.stringify({
-          type: "auth",
-          token: session.access_token,
-          threads,
-        })
-      );
     };
 
     ws.onmessage = (event) => {
@@ -225,14 +223,17 @@ export const useWebSocketMiner = ({
         const msg = JSON.parse(event.data);
 
         switch (msg.type) {
-          case "job":
+          case "job": {
+            // Proxy sends { type:'job', job:{ job_id, blob, target, ... }, sessionId? }
+            const job = msg.job || msg;
             updateStats({ isMining: true, isPending: false, status: "mining" });
             spawnWorkers({
-              jobId: msg.jobId,
-              blob: msg.blob,
-              target: msg.target,
+              jobId: job.job_id || job.jobId,
+              blob: job.blob,
+              target: job.target,
             });
             break;
+          }
 
           case "accepted":
             setStats((prev) => ({ ...prev, acceptedShares: prev.acceptedShares + 1 }));
