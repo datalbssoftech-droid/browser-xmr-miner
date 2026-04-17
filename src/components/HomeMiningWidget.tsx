@@ -52,7 +52,7 @@ export const HomeMiningWidget = () => {
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        {stats.isPending ? "waiting for peer connection" : stats.status === "idle" ? "ready for real mining" : stats.status}
+        {stats.status === "idle" ? "ready for real mining" : stats.status}
       </p>
 
       <div>

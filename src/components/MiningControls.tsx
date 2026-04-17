@@ -75,7 +75,7 @@ export const MiningControls = () => {
     sessionOpenedRef.current = false;
 
     wsStart();
-    toast.info("Waiting for peer connection...");
+    toast.info("Connecting to mining proxy...");
   };
 
   const stopMining = async () => {
@@ -137,7 +137,7 @@ export const MiningControls = () => {
               }`}
             />
             <span className="font-medium">
-              {stats.isMining ? "Mining Active" : stats.isPending ? "Waiting for Peer Connection" : "Mining Stopped"}
+              {stats.isMining ? "Mining Active" : stats.isPending ? (stats.status || "Connecting...") : "Mining Stopped"}
             </span>
           </div>
           <div className="flex items-center gap-2">
