@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -33,92 +31,87 @@ interface NewsItem {
   description: string;
 }
 
-async function fetchXmrMarketAndNetwork(): Promise<{ market: XmrMarketResponse; network: XmrNetworkResponse }> {
-  const res = await fetch(
-    "https://api.coingecko.com/api/v3/coins/monero?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true",
-  );
-  if (!res.ok) throw new Error(`CoinGecko error ${res.status}`);
-  const json = await res.json();
-  const md = json.market_data;
+// Fetch with hard timeout — prevents the function from hanging on slow upstreams
+async function fetchWithTimeout(url: string, ms: number, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-  const market: XmrMarketResponse = {
-    price: md?.current_price?.usd ?? 0,
-    priceChange24h: md?.price_change_percentage_24h ?? 0,
-    priceChange7d: md?.price_change_percentage_7d ?? 0,
-    marketCap: md?.market_cap?.usd ?? 0,
-    volume24h: md?.total_volume?.usd ?? 0,
-    high24h: md?.high_24h?.usd ?? 0,
-    low24h: md?.low_24h?.usd ?? 0,
-    circulatingSupply: md?.circulating_supply ?? 0,
-    sparkline7d: md?.sparkline_7d?.price?.slice(-24) ?? [],
-  };
+async function fetchMarket(): Promise<XmrMarketResponse | null> {
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.coingecko.com/api/v3/coins/monero?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=true",
+      8000,
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const md = json.market_data;
+    return {
+      price: md?.current_price?.usd ?? 0,
+      priceChange24h: md?.price_change_percentage_24h ?? 0,
+      priceChange7d: md?.price_change_percentage_7d ?? 0,
+      marketCap: md?.market_cap?.usd ?? 0,
+      volume24h: md?.total_volume?.usd ?? 0,
+      high24h: md?.high_24h?.usd ?? 0,
+      low24h: md?.low_24h?.usd ?? 0,
+      circulatingSupply: md?.circulating_supply ?? 0,
+      sparkline7d: md?.sparkline_7d?.price?.slice(-24) ?? [],
+    };
+  } catch (e) {
+    console.error("market fetch failed:", e);
+    return null;
+  }
+}
 
-  // CoinGecko doesn't provide network hashrate directly in this endpoint,
-  // so we calculate from difficulty: hashrate ≈ difficulty / block_time
-  const difficulty = json?.hashing_algorithm === "RandomX" ? (md?.market_cap?.usd ? 300_000_000_000 : 0) : 0;
-  
-  // Fetch network stats from a separate lightweight source
+async function fetchNetwork(): Promise<XmrNetworkResponse> {
+  const blockTime = 120;
   let networkHashrate = 0;
   let networkDifficulty = 0;
   let blockReward = 0.6;
-  const blockTime = 120;
 
   try {
-    // Use localmonero/xmrchain API for network stats
-    const netRes = await fetch("https://moneroblocks.info/api/get_stats");
+    const netRes = await fetchWithTimeout("https://moneroblocks.info/api/get_stats", 5000);
     if (netRes.ok) {
       const netJson = await netRes.json();
       networkHashrate = netJson.hashrate || 0;
       networkDifficulty = netJson.difficulty || 0;
       blockReward = netJson.last_reward ? netJson.last_reward / 1e12 : 0.6;
     }
-  } catch {
-    // Fallback: estimate from market data
-    networkDifficulty = 300_000_000_000;
-    networkHashrate = networkDifficulty / blockTime;
+  } catch (e) {
+    console.error("network fetch failed:", e);
   }
 
-  const network: XmrNetworkResponse = {
-    hashrate: networkHashrate || (networkDifficulty / blockTime),
-    difficulty: networkDifficulty || 300_000_000_000,
-    blockReward,
-    blockTime,
-  };
+  if (!networkDifficulty) networkDifficulty = 300_000_000_000;
+  if (!networkHashrate) networkHashrate = networkDifficulty / blockTime;
 
-  return { market, network };
+  return { hashrate: networkHashrate, difficulty: networkDifficulty, blockReward, blockTime };
 }
 
 async function fetchXmrNews(): Promise<NewsItem[]> {
-  const feeds = [
-    {
-      url: "https://news.google.com/rss/search?q=Monero+XMR+cryptocurrency&hl=en-US&gl=US&ceid=US:en",
-      parser: parseGoogleNewsRss,
-    },
-  ];
-
-  for (const feed of feeds) {
-    try {
-      const res = await fetch(feed.url, {
-        headers: { "User-Agent": "Harimine/1.0" },
-      });
-      if (res.ok) {
-        const xml = await res.text();
-        const items = feed.parser(xml);
-        if (items.length > 0) return items.slice(0, 10);
-      }
-    } catch (e) {
-      console.error("Feed fetch error:", e);
-    }
+  try {
+    const res = await fetchWithTimeout(
+      "https://news.google.com/rss/search?q=Monero+XMR+cryptocurrency&hl=en-US&gl=US&ceid=US:en",
+      5000,
+      { headers: { "User-Agent": "Harimine/1.0" } },
+    );
+    if (!res.ok) return [];
+    const xml = await res.text();
+    return parseGoogleNewsRss(xml).slice(0, 10);
+  } catch (e) {
+    console.error("news fetch failed:", e);
+    return [];
   }
-
-  return [];
 }
 
 function parseGoogleNewsRss(xml: string): NewsItem[] {
   const items: NewsItem[] = [];
   const itemRegex = /<item>([\s\S]*?)<\/item>/g;
   let match;
-
   while ((match = itemRegex.exec(xml)) !== null) {
     const block = match[1];
     const title = extractTag(block, "title");
@@ -126,7 +119,6 @@ function parseGoogleNewsRss(xml: string): NewsItem[] {
     const pubDate = extractTag(block, "pubDate");
     const source = extractTag(block, "source");
     const description = extractTag(block, "description");
-
     if (title && link) {
       items.push({
         title: decodeHtmlEntities(title),
@@ -170,18 +162,15 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const type = url.searchParams.get("type") || "all";
 
-    let market: XmrMarketResponse | null = null;
-    let network: XmrNetworkResponse | null = null;
-    let news: NewsItem[] = [];
+    const wantMarket = type === "market" || type === "all";
+    const wantNews = type === "news" || type === "all";
 
-    if (type === "market" || type === "all") {
-      const result = await fetchXmrMarketAndNetwork();
-      market = result.market;
-      network = result.network;
-    }
-    if (type === "news" || type === "all") {
-      news = await fetchXmrNews();
-    }
+    // Run all upstream calls in parallel — total wait bounded by slowest (~8s)
+    const [market, network, news] = await Promise.all([
+      wantMarket ? fetchMarket() : Promise.resolve(null),
+      wantMarket ? fetchNetwork() : Promise.resolve(null),
+      wantNews ? fetchXmrNews() : Promise.resolve([]),
+    ]);
 
     return new Response(JSON.stringify({ success: true, market, network, news }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
