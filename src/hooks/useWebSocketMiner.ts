@@ -156,9 +156,12 @@ export const useWebSocketMiner = ({
             wsRef.current.send(
               JSON.stringify({
                 type: "submit",
-                jobId: event.data.jobId,
-                nonce: event.data.nonce,
-                result: event.data.result,
+                id: crypto.randomUUID(),
+                share: {
+                  job_id: event.data.jobId,
+                  nonce: event.data.nonce,
+                  result: event.data.result,
+                },
               })
             );
           }
