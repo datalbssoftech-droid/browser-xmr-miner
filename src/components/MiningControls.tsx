@@ -124,18 +124,6 @@ export const MiningControls = () => {
 
   return (
     <div className="space-y-6">
-      {!proxyEnabled && (
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
-          <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-warning">Mining proxy is not ready yet</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Real mining stays on waiting for peer connection until the admin completes proxy setup.
-            </p>
-          </div>
-        </div>
-      )}
-
       <div className="stat-card">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
